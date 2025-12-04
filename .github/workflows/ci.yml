@@ -11,7 +11,7 @@ on:
       - develop
 
 jobs:
-  lint:
+  lint-front:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,9 +19,29 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
+      - working-directory: cookibud-front
+        run: |
+          npm ci
+          npm run lint
+          npm run format:check
+
+  lint-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - working-directory: cookibud-api
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements-lock.txt
+          pylint **/*.py
+          black --check .
+          isort . --check-only
 
   test-front:
     runs-on: ubuntu-latest
@@ -31,14 +51,15 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: cd cookibud-front
-      - run: npm ci
-      - run: npm run test:coverage
+      - working-directory: cookibud-front
+        run: |
+          npm ci
+          npm run test:coverage
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v5
         with:
           name: coverage-report
-          path: coverage/lcov.info
+          path: cookibud-front/coverage/lcov.info
 
   test-api:
     runs-on: ubuntu-latest
@@ -48,14 +69,18 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-      - run: cd cookibud-api
-      - run: pip install -r requirements-lock.txt
-      - run: pytest . --cov=./ --cov-report=lcov:coverage/lcov.info
+      - working-directory: cookibud-api
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements-lock.txt
+          pytest . --cov=./ --cov-report=lcov:coverage/lcov.info
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v5
         with:
           name: coverage-report
-          path: coverage/lcov.info
+          path: cookibud-api/coverage/lcov.info
 
   sonarqube-front:
     name: SonarQube
@@ -79,7 +104,7 @@ jobs:
             -Dsonar.projectKey=Soilhat_cookibud-front
             -Dsonar.organization=soilhat
             -Dsonar.host.url=https://sonarcloud.io
-            -Dsonar.javascript.lcov.reportPaths=lcov.info
+            -Dsonar.typescript.lcov.reportPaths=lcov.info
             -Dsonar.coverage.exclusions=**/tests/**,**/stories/**,**/*.spec.tsx,**/*.spec.ts,**/*.config.ts
 
   sonarqube-api:
@@ -104,13 +129,12 @@ jobs:
             -Dsonar.projectKey=Soilhat_cookibud-api
             -Dsonar.organization=soilhat
             -Dsonar.host.url=https://sonarcloud.io
-            -Dsonar.javascript.lcov.reportPaths=lcov.info
-            -Dsonar.coverage.exclusions=**/tests/**,**/stories/**,**/*.spec.tsx,**/*.spec.ts,**/*.config.ts
+            -Dsonar.python.lcov.reportPaths=lcov.info
 
 
   deploy:
     name: Deploy to Local runner
-    needs: [lint, test-front, test-api, sonarqube-front, sonarqube-api]
+    needs: [lint-front, lint-api, test-front, test-api, sonarqube-front, sonarqube-api]
     runs-on: self-hosted
     steps:
       - name: Deploy with Docker Compose
