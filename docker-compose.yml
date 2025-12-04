@@ -1,0 +1,41 @@
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: cookibud
+
+  api:
+    build:
+      context: .
+      dockerfile: cookibud-api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/cookibud
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./cookibud-api:/app:ro
+
+  front:
+    env_file: cookibud-front/.env
+    build:
+      context: .
+      dockerfile: cookibud-front/Dockerfile
+      args:
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+
+volumes:
+  mongo-data:
+    name: cookibud-mongo-data

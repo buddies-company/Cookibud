@@ -1,0 +1,42 @@
+{
+    "pages": {
+        "auth": {
+            "login": {
+                "greetings": "Welcome back!",
+                "login": "Login",
+                "create_account": "Don't have an account?",
+                "demo": "Checkout demo",
+                "invalid": "Invalid username or password"
+            },
+            "register": {
+                "greetings": "Create your account",
+                "register": "Register",
+                "have_account": "Already have an account?",
+                "login": "Login",
+                "name": "Name",
+                "email": "Email",
+                "password": "Password",
+                "confirm_password": "Confirm Password",
+                "password_mismatch": "Passwords do not match"
+            }
+        },
+        "user":{
+            "logout": "Logout",
+            "username": "Username",
+            "password": "Password"
+        },
+        "recipe": {
+            "new_recipe": "New Recipe",
+            "title": "Title",
+            "description": "Description",
+            "ingredients": "Ingredients",
+            "add_ingredient": "Add Ingredient",
+            "add_quantity": "Add quantity",
+            "ingredients_quantity": "{{quantity}}g of {{ingredient}}",
+            "save_recipe": "Save Recipe",
+            "save_ingredient": "Save ingredient",
+            "delete_recipe": "Delete Recipe",
+            "delete_ingredient": "Delete ingredient"
+        }
+    }
+}

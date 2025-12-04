@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@source "../node_modules/@soilhat/react-components";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary: #1D4ED8;
+    --color-secondary: #9333EA;
+    --color-accent: #FBBF24;
+    --color-background: #F9FAFB;
+    --color-text: #111827;
+}
