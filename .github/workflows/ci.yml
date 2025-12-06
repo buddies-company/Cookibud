@@ -59,7 +59,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: cookibud-front-dependencies
-          path: cookibud-front
+          path: cookibud-front/node_modules
           retention-days: 1 # Dependencies are only needed for subsequent jobs
 
   setup-api:
@@ -120,7 +120,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: cookibud-front-dependencies
-          path: cookibud-front
+          path: cookibud-front/node_modules
 
       - name: 📝 Run Lint checks
         working-directory: cookibud-front
@@ -142,7 +142,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: cookibud-front-dependencies
-          path: cookibud-front
+          path: cookibud-front/node_modules
 
       - name: 🧪 Run Tests & Collect Coverage
         working-directory: cookibud-front
@@ -167,12 +167,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
+
       - name: ⬇️ Download Backend venv
         uses: actions/download-artifact@v5
         with:
           name: cookibud-api-dependencies
           path: cookibud-api/venv
+
+      - name: 🔒 Restore permissions on executables
+        run: chmod +x cookibud-api/venv/bin/*
 
       - name: 📝 Run Lint checks
         working-directory: cookibud-api
@@ -197,6 +200,9 @@ jobs:
         with:
           name: cookibud-api-dependencies
           path: cookibud-api/venv
+
+      - name: 🔒 Restore permissions on executables
+        run: chmod +x cookibud-api/venv/bin/*
 
       - name: 🧪 Run Tests & Collect Coverage
         working-directory: cookibud-api
