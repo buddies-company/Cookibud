@@ -10,95 +10,223 @@ on:
       - main
       - develop
 
+# ==============================================================================
+# 📦 SETUP JOBS (Install packages once, then save as artifacts)
+# ==============================================================================
+
 jobs:
+  setup-front:
+    name: Setup Frontend Environment
+    runs-on: ubuntu-latest
+    # Added output to share the npm cache key
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-primary-key }}
+    permissions:
+      contents: read
+      packages: read # Needed for private GitHub packages
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 🔑 Configure .npmrc for GitHub Packages
+        run: |
+          # Create temporary .npmrc to pass GITHUB_TOKEN for private packages
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > cookibud-front/.npmrc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # NOTE: This temporary .npmrc will be included in the artifact
+
+      - name: 💾 Cache node modules
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: cookibud-front/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('cookibud-front/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: 📦 Install Frontend dependencies
+        working-directory: cookibud-front
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: ⬆️ Upload Frontend dependencies (Artifact)
+        uses: actions/upload-artifact@v5
+        with:
+          name: cookibud-front-dependencies
+          path: cookibud-front
+          retention-days: 1 # Dependencies are only needed for subsequent jobs
+
+  setup-api:
+    name: Setup Backend Environment
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-primary-key }}
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # NOTE: For Python, caching the virtual environment path is more efficient
+      - name: 💾 Cache Python venv
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: cookibud-api/venv
+          key: ${{ runner.os }}-pip-${{ hashFiles('cookibud-api/requirements-lock.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 📦 Install Backend dependencies (if cache missed)
+        working-directory: cookibud-api
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements-lock.txt
+
+      - name: ⬆️ Upload Backend dependencies (Artifact)
+        uses: actions/upload-artifact@v5
+        with:
+          name: cookibud-api-dependencies
+          path: cookibud-api/venv
+          retention-days: 1
+          
+# ------------------------------------------------------------------------------
+# 💻 FRONTEND JOBS
+# ------------------------------------------------------------------------------
+
   lint-front:
+    name: Lint Frontend
+    needs: setup-front
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-      - working-directory: cookibud-front
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ⬇️ Download Frontend dependencies
+        uses: actions/download-artifact@v5
+        with:
+          name: cookibud-front-dependencies
+          path: cookibud-front
+
+      - name: 📝 Run Lint checks
+        working-directory: cookibud-front
         run: |
-          npm ci
           npm run lint
           npm run format:check
 
-  lint-api:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-      - working-directory: cookibud-api
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements-lock.txt
-          pylint **/*.py
-          black --check .
-          isort . --check-only
-
   test-front:
+    name: Test Frontend
+    needs: setup-front
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-      - working-directory: cookibud-front
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm ci
-          npm run test:coverage
-      - name: Upload coverage artifact
+
+      - name: ⬇️ Download Frontend dependencies
+        uses: actions/download-artifact@v5
+        with:
+          name: cookibud-front-dependencies
+          path: cookibud-front
+
+      - name: 🧪 Run Tests & Collect Coverage
+        working-directory: cookibud-front
+        run: npm run test:coverage
+
+      - name: ⬆️ Upload coverage artifact (LCOV)
         uses: actions/upload-artifact@v5
         with:
-          name: coverage-report
+          name: coverage-report-front
           path: cookibud-front/coverage/lcov.info
+          
+# ------------------------------------------------------------------------------
+# 🐍 BACKEND JOBS
+# ------------------------------------------------------------------------------
 
-  test-api:
+  lint-api:
+    name: Lint Backend
+    needs: setup-api
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
-      - working-directory: cookibud-api
+          
+      - name: ⬇️ Download Backend venv
+        uses: actions/download-artifact@v5
+        with:
+          name: cookibud-api-dependencies
+          path: cookibud-api/venv
+
+      - name: 📝 Run Lint checks
+        working-directory: cookibud-api
         run: |
-          python -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements-lock.txt
+          pylint cookibud_api
+          black --check .
+          isort . --check-only
+
+  test-api:
+    name: Test Backend
+    needs: setup-api
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: ⬇️ Download Backend venv
+        uses: actions/download-artifact@v5
+        with:
+          name: cookibud-api-dependencies
+          path: cookibud-api/venv
+
+      - name: 🧪 Run Tests & Collect Coverage
+        working-directory: cookibud-api
+        run: |
+          source venv/bin/activate
           pytest . --cov=./ --cov-report=lcov:coverage/lcov.info
-      - name: Upload coverage artifact
+
+      - name: ⬆️ Upload coverage artifact (LCOV)
         uses: actions/upload-artifact@v5
         with:
-          name: coverage-report
+          name: coverage-report-api
           path: cookibud-api/coverage/lcov.info
 
+# ------------------------------------------------------------------------------
+# 📈 SONARQUBE JOBS
+# ------------------------------------------------------------------------------
+
   sonarqube-front:
-    name: SonarQube
+    name: SonarQube Frontend
     needs: test-front
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Download a single artifact
+      - name: ⬇️ Download coverage artifact
         uses: actions/download-artifact@v5
         with:
-          name: coverage-report
-      - name: SonarQubeScan
+          name: coverage-report-front
+      - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -110,20 +238,20 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.typescript.lcov.reportPaths=lcov.info
             -Dsonar.coverage.exclusions=**/tests/**,**/stories/**,**/*.spec.tsx,**/*.spec.ts,**/*.config.ts
-
+            
   sonarqube-api:
-    name: SonarQube
+    name: SonarQube Backend
     needs: test-api
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Download a single artifact
+      - name: ⬇️ Download coverage artifact
         uses: actions/download-artifact@v5
         with:
-          name: coverage-report
-      - name: SonarQubeScan
+          name: coverage-report-api
+      - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -134,17 +262,22 @@ jobs:
             -Dsonar.organization=soilhat
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.python.lcov.reportPaths=lcov.info
-
-
+            
+# ------------------------------------------------------------------------------
+# 🚢 DEPLOY JOB
+# ------------------------------------------------------------------------------
+            
   deploy:
     name: Deploy to Local runner
     needs: [lint-front, lint-api, test-front, test-api, sonarqube-front, sonarqube-api]
     runs-on: self-hosted
     steps:
-      - name: Deploy with Docker Compose
+      - name: ⬇️ Checkout code
         uses: actions/checkout@v4
-      - run: |
-          docker-compose up -d --build
+      
+      - name: 🚢 Deploy with Docker Compose
         working-directory: ${{ github.workspace }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker-compose up -d --build
