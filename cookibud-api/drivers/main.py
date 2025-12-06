@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import iterate_in_threadpool
 
-logger = logging.getLogger('uvicorn.trace')
+logger = logging.getLogger("uvicorn.trace")
 
 app = FastAPI(title="Cookibud API")
 
@@ -22,6 +22,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.middleware("http")
 async def middleware(request: Request, call_next):
@@ -40,14 +41,18 @@ async def middleware(request: Request, call_next):
     res_body = res_body[0].decode()
 
     # Add the background task to the response object to queue the job
-    logger.debug('GET /', extras={
-        'request': request,
-        'request_body': req_body,
-        'response': response,
-        'response_body': res_body,
-        'process_time': process_time
-    })
+    logger.debug(
+        "GET /",
+        extras={
+            "request": request,
+            "request_body": req_body,
+            "response": response,
+            "response_body": res_body,
+            "process_time": process_time,
+        },
+    )
     return response
+
 
 app.include_router(auth.router, tags=["auth"])
 app.include_router(

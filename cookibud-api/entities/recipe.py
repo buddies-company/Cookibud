@@ -6,9 +6,8 @@ from pydantic import BaseModel
 class Ingredient(BaseModel):
     """Ingredient definition"""
 
-    id: str
     name: str
-    quantity: float  # in grams
+    quantity: float | None = None  # in grams
 
 
 class Recipe(BaseModel):

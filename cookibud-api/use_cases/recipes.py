@@ -18,7 +18,9 @@ class ReadRecipesUseCase:
         if search:
             # Build a case-insensitive substring match for MongoDB
             # Using $regex with the search string and option 'i' for case-insensitive
-            return self.recipe_repository.read(title={"$regex": search, "$options": "i"})
+            return self.recipe_repository.read(
+                title={"$regex": search, "$options": "i"}
+            )
         return self.recipe_repository.read()
 
 
@@ -44,6 +46,8 @@ class CreateRecipeUseCase:
 
     def __call__(self, recipe_data: Recipe, user_id: str) -> Recipe:
         """Create recipe with automatic author_id association"""
+        if not recipe_data.title:
+            raise ValueError("Recipe title cannot be empty.")
         recipe_data.author_id = user_id
         return self.recipe_repository.create(recipe_data)
 
@@ -64,7 +68,9 @@ class UpdateRecipeUseCase:
         if recipe.author_id != user_id:
             raise AccessDeniedError("Only the author can update this recipe")
 
-        return self.recipe_repository.update(recipe_id, **recipe_data)
+        return self.recipe_repository.update(
+            recipe_id, **recipe_data.model_dump(exclude_unset=True)
+        )
 
 
 @dataclass

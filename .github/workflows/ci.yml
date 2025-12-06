@@ -20,6 +20,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - working-directory: cookibud-front
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm ci
           npm run lint
@@ -52,6 +54,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - working-directory: cookibud-front
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm ci
           npm run test:coverage

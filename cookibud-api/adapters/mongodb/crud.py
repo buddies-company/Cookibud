@@ -77,7 +77,6 @@ class CRUD(ICRUD):
             return self.class_type(**document)
         return document
 
-
     def _to_document(self, element):
         """Normalize element into a plain dict suitable for insertion into MongoDB.
 
