@@ -11,19 +11,16 @@ on:
       - develop
 
 # ==============================================================================
-# 📦 SETUP JOBS (Install packages once, then save as artifacts)
+# 📦 SETUP JOBS (Install once, cache, and save as artifacts)
 # ==============================================================================
 
 jobs:
   setup-front:
     name: Setup Frontend Environment
     runs-on: ubuntu-latest
-    # Added output to share the npm cache key
-    outputs:
-      cache-key: ${{ steps.cache.outputs.cache-primary-key }}
     permissions:
       contents: read
-      packages: read # Needed for private GitHub packages
+      packages: read
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
@@ -34,12 +31,8 @@ jobs:
           node-version: '22'
 
       - name: 🔑 Configure .npmrc for GitHub Packages
-        run: |
-          # Create temporary .npmrc to pass GITHUB_TOKEN for private packages
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > cookibud-front/.npmrc
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # NOTE: This temporary .npmrc will be included in the artifact
+        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > cookibud-front/.npmrc
+        working-directory: cookibud-front
 
       - name: 💾 Cache node modules
         id: cache
@@ -47,8 +40,6 @@ jobs:
         with:
           path: cookibud-front/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('cookibud-front/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
 
       - name: 📦 Install Frontend dependencies
         working-directory: cookibud-front
@@ -59,8 +50,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: cookibud-front-dependencies
-          path: cookibud-front/node_modules
-          retention-days: 1 # Dependencies are only needed for subsequent jobs
+          path: cookibud-front # Upload the entire folder with node_modules
 
   setup-api:
     name: Setup Backend Environment
@@ -76,7 +66,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      # NOTE: For Python, caching the virtual environment path is more efficient
       - name: 💾 Cache Python venv
         id: cache
         uses: actions/cache@v4
@@ -101,7 +90,7 @@ jobs:
           name: cookibud-api-dependencies
           path: cookibud-api/venv
           retention-days: 1
-          
+
 # ------------------------------------------------------------------------------
 # 💻 FRONTEND JOBS
 # ------------------------------------------------------------------------------
@@ -120,7 +109,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: cookibud-front-dependencies
-          path: cookibud-front/node_modules
+          path: . # Download content (cookibud-front folder) to workspace root
 
       - name: 📝 Run Lint checks
         working-directory: cookibud-front
@@ -142,18 +131,18 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: cookibud-front-dependencies
-          path: cookibud-front/node_modules
+          path: . 
 
       - name: 🧪 Run Tests & Collect Coverage
         working-directory: cookibud-front
-        run: npm run test:coverage
-
+        run: npx vitest run --coverage
+        
       - name: ⬆️ Upload coverage artifact (LCOV)
         uses: actions/upload-artifact@v5
         with:
           name: coverage-report-front
           path: cookibud-front/coverage/lcov.info
-          
+
 # ------------------------------------------------------------------------------
 # 🐍 BACKEND JOBS
 # ------------------------------------------------------------------------------
@@ -245,8 +234,8 @@ jobs:
         with:
           projectBaseDir: .
           args: >
-            -Dsonar.projectKey=Soilhat_cookibud-front
-            -Dsonar.organization=soilhat
+            -Dsonar.projectKey=cookibud-front
+            -Dsonar.organization=budddies
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.typescript.lcov.reportPaths=lcov.info
             -Dsonar.coverage.exclusions=**/tests/**,**/stories/**,**/*.spec.tsx,**/*.spec.ts,**/*.config.ts
@@ -270,8 +259,8 @@ jobs:
         with:
           projectBaseDir: .
           args: >
-            -Dsonar.projectKey=Soilhat_cookibud-api
-            -Dsonar.organization=soilhat
+            -Dsonar.projectKey=cookibud-api
+            -Dsonar.organization=budddies
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.python.lcov.reportPaths=lcov.info
             

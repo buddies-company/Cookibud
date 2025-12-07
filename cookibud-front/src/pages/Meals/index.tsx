@@ -127,7 +127,7 @@ export default function MealsPage() {
       </Card>
 
 
-      <Modal open={modalOpen}>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
           <form onSubmit={(e) => saveMeal(e)}>
             <div className="mb-3"><strong className="block">Plan meal for:</strong> <span className="text-gray-700 dark:text-gray-200">{selectedDate}</span></div>
             <div className="mb-3">

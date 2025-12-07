@@ -204,7 +204,7 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
     <div>
       {ingredient?.name ? <Button type="button" onClick={() => setOpen(true)}>{ingredient.name} {ingredient.quantity ? `(${ingredient.quantity}g)` : ""}</Button>
       : <Button type="button" onClick={() => setOpen(true)} className="border-2 border-dashed border-gray-300 dark:border-gray-600 dark:text-white bg-transparent text-center cursor-pointer">{t("add_ingredient")}</Button>}
-      <Modal open={open}>
+      <Modal open={open} onClose={() => setOpen(false)}>
           <div className="relative">
             <Input
               label={t("add_ingredient")}
