@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     adapter: str = "in_memory"
     mongo_uri: str = "mongodb://localhost:27017/"
+    frontend_url: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(env_file=".env")
 

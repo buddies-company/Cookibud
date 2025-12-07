@@ -24,7 +24,7 @@ export const callApi = async (
     }
 
     let body: BodyInit | undefined = undefined;
-    let headers: Record<string, string> = {
+    const headers: Record<string, string> = {
         "Authorization": `Bearer ${localStorage.getItem("token")}`,
         "Access-Control-Allow-Origin": "*",
     };

@@ -6,6 +6,7 @@ from drivers.routers import auth, meals, recipes
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import iterate_in_threadpool
+from drivers.config import settings
 
 logger = logging.getLogger("uvicorn.trace")
 
@@ -13,6 +14,7 @@ app = FastAPI(title="Cookibud API")
 
 origins = [
     "http://localhost:5173",
+    settings.frontend_url,
 ]
 
 app.add_middleware(

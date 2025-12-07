@@ -179,9 +179,12 @@ jobs:
 
       - name: 📝 Run Lint checks
         working-directory: cookibud-api
+        # 🔑 Set PYTHONPATH to include the current directory (where cookibud_api is located)
+        env:
+          PYTHONPATH: ${{ github.workspace }}/cookibud-api
         run: |
           source venv/bin/activate
-          pylint cookibud_api
+          pylint .
           black --check .
           isort . --check-only
 
@@ -206,6 +209,9 @@ jobs:
 
       - name: 🧪 Run Tests & Collect Coverage
         working-directory: cookibud-api
+        # 🔑 Set PYTHONPATH to include the current directory (where cookibud_api is located)
+        env:
+          PYTHONPATH: ${{ github.workspace }}/cookibud-api
         run: |
           source venv/bin/activate
           pytest . --cov=./ --cov-report=lcov:coverage/lcov.info
