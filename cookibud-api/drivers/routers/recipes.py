@@ -8,10 +8,14 @@ from entities.recipe import Recipe
 from entities.user import TokenData
 from fastapi import APIRouter, Depends, HTTPException, status
 from use_cases.exceptions import AccessDeniedError
-from use_cases.recipes import (CreateRecipeUseCase, DeleteRecipeUseCase,
-                               GetIngredientNamesUseCase,
-                               ReadRecipeByIdUseCase, ReadRecipesUseCase,
-                               UpdateRecipeUseCase)
+from use_cases.recipes import (
+    CreateRecipeUseCase,
+    DeleteRecipeUseCase,
+    GetIngredientNamesUseCase,
+    ReadRecipeByIdUseCase,
+    ReadRecipesUseCase,
+    UpdateRecipeUseCase,
+)
 
 router = APIRouter()
 

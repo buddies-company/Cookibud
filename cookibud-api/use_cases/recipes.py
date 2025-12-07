@@ -69,7 +69,8 @@ class UpdateRecipeUseCase:
             raise AccessDeniedError("Only the author can update this recipe")
 
         return self.recipe_repository.update(
-            recipe_id, **recipe_data.model_dump(exclude_unset=True)
+            recipe_id,
+            **recipe_data.model_dump(exclude_unset=True, exclude={"author_id", "id"})
         )
 
 

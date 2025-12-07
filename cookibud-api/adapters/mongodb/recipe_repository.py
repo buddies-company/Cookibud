@@ -1,8 +1,7 @@
 """MongoDB implementation of RecipeRepository"""
 
 from adapters.mongodb.crud import CRUD
-from adapters.ports.recipe_repository import \
-    RecipeRepository as IRecipeRepository
+from adapters.ports.recipe_repository import RecipeRepository as IRecipeRepository
 from entities.recipe import Recipe
 
 

@@ -57,7 +57,10 @@ class UpdateMealUseCase:
         existing_meals = self.meal_repository.read(id=meal_id, user_id=user_id)
         if not existing_meals:
             raise AccessDeniedError(MEAL_NOT_FOUND_OR_DENIED)
-        return self.meal_repository.update(meal_id, **meal_data)
+        return self.meal_repository.update(
+            meal_id,
+            **meal_data.model_dump(exclude_unset=True, exclude={"user_id", "id"})
+        )
 
 
 @dataclass

@@ -15,7 +15,7 @@ class Meal(BaseModel):
     id: Optional[str] = None
     date: str  # ISO format date string
     items: List[RecipeEntry]
-    user_id: str | None = None # owner of this meal
+    user_id: str | None = None  # owner of this meal
 
     class Config:
         schema_extra = {

@@ -8,9 +8,13 @@ from entities.meal import Meal
 from entities.user import TokenData
 from fastapi import APIRouter, Depends, HTTPException, status
 from use_cases.exceptions import AccessDeniedError
-from use_cases.meals import (CreateMealUseCase, DeleteMealUseCase,
-                             ReadMealByIdUseCase, ReadUserMealsUseCase,
-                             UpdateMealUseCase)
+from use_cases.meals import (
+    CreateMealUseCase,
+    DeleteMealUseCase,
+    ReadMealByIdUseCase,
+    ReadUserMealsUseCase,
+    UpdateMealUseCase,
+)
 
 router = APIRouter()
 

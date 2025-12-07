@@ -11,8 +11,11 @@ from entities.user import Token, User
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from use_cases.auth import AuthUseCase, RegisterUseCase, RevokeUseCase
-from use_cases.exceptions import (AlreadyExistingUser, InvalidPasswordError,
-                                  UserNotFoundError)
+from use_cases.exceptions import (
+    AlreadyExistingUser,
+    InvalidPasswordError,
+    UserNotFoundError,
+)
 
 router = APIRouter()
 

@@ -4,10 +4,14 @@ from unittest.mock import MagicMock
 from adapters.ports.recipe_repository import RecipeRepository
 from entities.recipe import Recipe
 from use_cases.exceptions import AccessDeniedError
-from use_cases.recipes import (CreateRecipeUseCase, DeleteRecipeUseCase,
-                               GetIngredientNamesUseCase,
-                               ReadRecipeByIdUseCase, ReadRecipesUseCase,
-                               UpdateRecipeUseCase)
+from use_cases.recipes import (
+    CreateRecipeUseCase,
+    DeleteRecipeUseCase,
+    GetIngredientNamesUseCase,
+    ReadRecipeByIdUseCase,
+    ReadRecipesUseCase,
+    UpdateRecipeUseCase,
+)
 
 
 class TestReadRecipes(unittest.TestCase):
