@@ -11,29 +11,11 @@ const manifestForPlugIn: Partial<VitePWAOptions> = {
     short_name: "Cookibud",
     description: "Tool to help you manage recipes and schedule meals.",
     icons: [{
-      src: '/android-chrome-192x192.png',
-      sizes: '192x192',
+      src: '/assets/pal only.png',
+      sizes: '1024x1024',
       type: 'image/png',
       purpose: 'favicon'
     },
-    {
-      src: '/android-chrome-512x512.png',
-      sizes: '512x512',
-      type: 'image/png',
-      purpose: 'favicon'
-    },
-    {
-      src: '/apple-touch-icon.png',
-      sizes: '180x180',
-      type: 'image/png',
-      purpose: 'apple touch icon',
-    },
-    {
-      src: '/maskable_icon.png',
-      sizes: '512x512',
-      type: 'image/png',
-      purpose: 'any maskable',
-    }
     ],
     theme_color: '#201b5b',
     background_color: '#f0e7db',

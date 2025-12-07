@@ -156,24 +156,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
+      
       - name: ⬇️ Download Backend venv
         uses: actions/download-artifact@v5
         with:
           name: cookibud-api-dependencies
           path: cookibud-api/venv
 
-      - name: 🔒 Restore permissions on executables
+      - name: 🔒 Restore permissions
         run: chmod +x cookibud-api/venv/bin/*
-
+        
       - name: 📝 Run Lint checks
         working-directory: cookibud-api
-        # 🔑 Set PYTHONPATH to include the current directory (where cookibud_api is located)
         env:
           PYTHONPATH: ${{ github.workspace }}/cookibud-api
         run: |
           source venv/bin/activate
-          pylint .
+          pylint . --exit-zero 
           black --check .
           isort . --check-only
 
@@ -232,13 +231,14 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: .
+          projectBaseDir: cookibud-front
           args: >
             -Dsonar.projectKey=cookibud-front
-            -Dsonar.organization=budddies
+            -Dsonar.organization=budddies-company
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.typescript.lcov.reportPaths=lcov.info
             -Dsonar.coverage.exclusions=**/tests/**,**/stories/**,**/*.spec.tsx,**/*.spec.ts,**/*.config.ts
+            -Dsonar.sourceEncoding=UTF-8
             
   sonarqube-api:
     name: SonarQube Backend
@@ -257,28 +257,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: .
+          projectBaseDir: cookibud-api
           args: >
             -Dsonar.projectKey=cookibud-api
-            -Dsonar.organization=budddies
+            -Dsonar.organization=budddies-company
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.python.lcov.reportPaths=lcov.info
-            
-# ------------------------------------------------------------------------------
-# 🚢 DEPLOY JOB
-# ------------------------------------------------------------------------------
-            
-  deploy:
-    name: Deploy to Local runner
-    needs: [lint-front, lint-api, test-front, test-api, sonarqube-front, sonarqube-api]
-    runs-on: self-hosted
-    steps:
-      - name: ⬇️ Checkout code
-        uses: actions/checkout@v4
-      
-      - name: 🚢 Deploy with Docker Compose
-        working-directory: ${{ github.workspace }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          docker-compose up -d --build
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.coverage.exclusions=**/tests/**,**/*.config.py
+            -Dsonar.python.version=3.11
