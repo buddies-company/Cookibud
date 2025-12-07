@@ -1,17 +1,14 @@
+"""Unit tests for recipe use cases."""
 import unittest
 from unittest.mock import MagicMock
 
 from adapters.ports.recipe_repository import RecipeRepository
 from entities.recipe import Recipe
 from use_cases.exceptions import AccessDeniedError
-from use_cases.recipes import (
-    CreateRecipeUseCase,
-    DeleteRecipeUseCase,
-    GetIngredientNamesUseCase,
-    ReadRecipeByIdUseCase,
-    ReadRecipesUseCase,
-    UpdateRecipeUseCase,
-)
+from use_cases.recipes import (CreateRecipeUseCase, DeleteRecipeUseCase,
+                               GetIngredientNamesUseCase,
+                               ReadRecipeByIdUseCase, ReadRecipesUseCase,
+                               UpdateRecipeUseCase)
 
 
 class TestReadRecipes(unittest.TestCase):
@@ -152,7 +149,8 @@ class TestUpdateRecipe(unittest.TestCase):
 
         self.recipe_repository.read.assert_called_once_with(id=recipe_id)
         self.recipe_repository.update.assert_called_once_with(
-            recipe_id, **updated_data.model_dump(exclude_unset=True)
+            recipe_id,
+            **updated_data.model_dump(exclude_unset=True, exclude={"author_id", "id"})
         )
 
         self.assertEqual(updated_recipe.title, updated_data.title)

@@ -1,9 +1,11 @@
+"""Meal entity definition."""
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class RecipeEntry(BaseModel):
+    """Entry of a recipe in a meal, with servings"""
     recipe_id: str
     title: Optional[str] = None
     servings: int = 1
@@ -17,8 +19,8 @@ class Meal(BaseModel):
     items: List[RecipeEntry]
     user_id: str | None = None  # owner of this meal
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "date": "2025-11-15",
                 "recipes": [
@@ -26,3 +28,4 @@ class Meal(BaseModel):
                 ],
             }
         }
+    )

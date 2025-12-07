@@ -1,9 +1,10 @@
 """Base class for MongoDB CRUD operations"""
 
-from adapters.mongodb.db import Collection
-from adapters.ports.crud import CRUD as ICRUD
 from bson import ObjectId
 from pydantic import BaseModel
+
+from adapters.mongodb.db import Collection
+from adapters.ports.crud import CRUD as ICRUD
 
 
 class CRUD(ICRUD):

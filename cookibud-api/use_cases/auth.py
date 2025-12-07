@@ -5,11 +5,8 @@ from dataclasses import dataclass
 from adapters.ports.user_repository import UserRepository
 from drivers.dependencies import pwd_context
 from entities.user import User
-from use_cases.exceptions import (
-    AlreadyExistingUser,
-    InvalidPasswordError,
-    UserNotFoundError,
-)
+from use_cases.exceptions import (AlreadyExistingUser, InvalidPasswordError,
+                                  UserNotFoundError)
 
 
 @dataclass

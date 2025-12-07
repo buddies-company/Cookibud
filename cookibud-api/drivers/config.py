@@ -1,3 +1,4 @@
+"""Configuration settings for the Cookibud API."""
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

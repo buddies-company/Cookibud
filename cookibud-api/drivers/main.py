@@ -1,12 +1,14 @@
+"""Main application entry point for Cookibud API."""
 import logging
 import time
 
-from drivers.dependencies import get_token_header
-from drivers.routers import auth, meals, recipes
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import iterate_in_threadpool
+
 from drivers.config import settings
+from drivers.dependencies import get_token_header
+from drivers.routers import auth, meals, recipes
 
 logger = logging.getLogger("uvicorn.trace")
 
@@ -31,7 +33,7 @@ async def middleware(request: Request, call_next):
     """Middleware to log request and response details along with processing time."""
     try:
         req_body = await request.json()
-    except Exception:
+    except Exception: # pylint: disable=broad-except
         req_body = None
 
     start_time = time.perf_counter()

@@ -4,18 +4,16 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import jwt
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+
 from adapters.ports.user_repository import UserRepository
 from drivers.config import settings
 from drivers.dependencies import get_adapter_repository, get_token_header
 from entities.user import Token, User
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from use_cases.auth import AuthUseCase, RegisterUseCase, RevokeUseCase
-from use_cases.exceptions import (
-    AlreadyExistingUser,
-    InvalidPasswordError,
-    UserNotFoundError,
-)
+from use_cases.exceptions import (AlreadyExistingUser, InvalidPasswordError,
+                                  UserNotFoundError)
 
 router = APIRouter()
 

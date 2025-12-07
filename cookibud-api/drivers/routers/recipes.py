@@ -2,20 +2,17 @@
 
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, status
+
 from adapters.ports.recipe_repository import RecipeRepository
 from drivers.dependencies import get_adapter_repository, get_token_header
 from entities.recipe import Recipe
 from entities.user import TokenData
-from fastapi import APIRouter, Depends, HTTPException, status
 from use_cases.exceptions import AccessDeniedError
-from use_cases.recipes import (
-    CreateRecipeUseCase,
-    DeleteRecipeUseCase,
-    GetIngredientNamesUseCase,
-    ReadRecipeByIdUseCase,
-    ReadRecipesUseCase,
-    UpdateRecipeUseCase,
-)
+from use_cases.recipes import (CreateRecipeUseCase, DeleteRecipeUseCase,
+                               GetIngredientNamesUseCase,
+                               ReadRecipeByIdUseCase, ReadRecipesUseCase,
+                               UpdateRecipeUseCase)
 
 router = APIRouter()
 
@@ -88,4 +85,3 @@ def delete_recipe(
         usecases["delete_recipe"](item_id, token.user_id)
     except AccessDeniedError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
-    return None  # 204 No Content

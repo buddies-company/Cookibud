@@ -18,6 +18,8 @@ jobs:
   setup-front:
     name: Setup Frontend Environment
     runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-primary-key }}
     permissions:
       contents: read
       packages: read
@@ -31,8 +33,11 @@ jobs:
           node-version: '22'
 
       - name: 🔑 Configure .npmrc for GitHub Packages
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > cookibud-front/.npmrc
-        working-directory: cookibud-front
+        run: |
+          # Create temporary .npmrc to pass GITHUB_TOKEN for private packages
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > cookibud-front/.npmrc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 💾 Cache node modules
         id: cache
@@ -40,6 +45,8 @@ jobs:
         with:
           path: cookibud-front/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('cookibud-front/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: 📦 Install Frontend dependencies
         working-directory: cookibud-front
@@ -234,7 +241,7 @@ jobs:
           projectBaseDir: cookibud-front
           args: >
             -Dsonar.projectKey=cookibud-front
-            -Dsonar.organization=budddies-company
+            -Dsonar.organization=buddies-company
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.typescript.lcov.reportPaths=lcov.info
             -Dsonar.coverage.exclusions=**/tests/**,**/stories/**,**/*.spec.tsx,**/*.spec.ts,**/*.config.ts
@@ -260,7 +267,7 @@ jobs:
           projectBaseDir: cookibud-api
           args: >
             -Dsonar.projectKey=cookibud-api
-            -Dsonar.organization=budddies-company
+            -Dsonar.organization=buddies-company
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.python.lcov.reportPaths=lcov.info
             -Dsonar.sourceEncoding=UTF-8

@@ -2,19 +2,16 @@
 
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, status
+
 from adapters.ports.meal_repository import MealRepository
 from drivers.dependencies import get_adapter_repository, get_token_header
 from entities.meal import Meal
 from entities.user import TokenData
-from fastapi import APIRouter, Depends, HTTPException, status
 from use_cases.exceptions import AccessDeniedError
-from use_cases.meals import (
-    CreateMealUseCase,
-    DeleteMealUseCase,
-    ReadMealByIdUseCase,
-    ReadUserMealsUseCase,
-    UpdateMealUseCase,
-)
+from use_cases.meals import (CreateMealUseCase, DeleteMealUseCase,
+                             ReadMealByIdUseCase, ReadUserMealsUseCase,
+                             UpdateMealUseCase)
 
 router = APIRouter()
 
@@ -75,4 +72,3 @@ def delete_meal(item_id: str, usecases_and_user: tuple = Depends(get_meal_usecas
         usecases["delete_meal"](item_id, user_id)
     except AccessDeniedError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
-    return None  # 204 No Content

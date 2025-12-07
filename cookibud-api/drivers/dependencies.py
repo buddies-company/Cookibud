@@ -4,11 +4,12 @@ import importlib
 from typing import Annotated, Literal
 
 import jwt
-from drivers.config import settings
-from entities.user import TokenData
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
+
+from drivers.config import settings
+from entities.user import TokenData
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
