@@ -1,10 +1,5 @@
 FROM python:3.11-slim
 
-RUN addgroup -S nonroot \
-    && adduser -S nonroot -G nonroot
-
-USER nonroot
-
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
