@@ -12,12 +12,15 @@ from drivers.config import settings
 from drivers.dependencies import get_adapter_repository, get_token_header
 from entities.user import Token, User
 from use_cases.auth import AuthUseCase, RegisterUseCase, RevokeUseCase
-from use_cases.exceptions import (AlreadyExistingUser, InvalidPasswordError,
-                                  UserNotFoundError)
+from use_cases.exceptions import (
+    AlreadyExistingUser,
+    InvalidPasswordError,
+    UserNotFoundError,
+)
 
 router = APIRouter()
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 720
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):

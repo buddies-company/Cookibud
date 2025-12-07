@@ -1,4 +1,5 @@
 """Repository interface for user operations"""
+
 from abc import ABC
 
 from adapters.ports.crud import CRUD

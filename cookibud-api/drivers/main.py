@@ -1,4 +1,5 @@
 """Main application entry point for Cookibud API."""
+
 import logging
 import time
 
@@ -33,7 +34,7 @@ async def middleware(request: Request, call_next):
     """Middleware to log request and response details along with processing time."""
     try:
         req_body = await request.json()
-    except Exception: # pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
         req_body = None
 
     start_time = time.perf_counter()

@@ -1,11 +1,12 @@
-"""Custom exceptions for user-related errors in the use cases.
-"""
+"""Custom exceptions for user-related errors in the use cases."""
+
 from dataclasses import dataclass
 
 
 @dataclass
 class UserNotFoundError(Exception):
     """Raised when a user is not found in the repository"""
+
     username: str
 
     def __str__(self) -> str:
@@ -15,6 +16,7 @@ class UserNotFoundError(Exception):
 @dataclass
 class InvalidPasswordError(Exception):
     """Raised when an invalid password is provided for authentication"""
+
     username: str
 
     def __str__(self) -> str:
@@ -24,6 +26,7 @@ class InvalidPasswordError(Exception):
 @dataclass
 class AlreadyExistingUser(Exception):
     """Raised when attempting to create a user that already exists"""
+
     message: str
 
     def __str__(self) -> str:

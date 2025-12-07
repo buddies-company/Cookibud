@@ -9,9 +9,13 @@ from drivers.dependencies import get_adapter_repository, get_token_header
 from entities.meal import Meal
 from entities.user import TokenData
 from use_cases.exceptions import AccessDeniedError
-from use_cases.meals import (CreateMealUseCase, DeleteMealUseCase,
-                             ReadMealByIdUseCase, ReadUserMealsUseCase,
-                             UpdateMealUseCase)
+from use_cases.meals import (
+    CreateMealUseCase,
+    DeleteMealUseCase,
+    ReadMealByIdUseCase,
+    ReadUserMealsUseCase,
+    UpdateMealUseCase,
+)
 
 router = APIRouter()
 

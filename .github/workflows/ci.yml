@@ -179,9 +179,15 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/cookibud-api
         run: |
           source venv/bin/activate
+          echo "Running Pylint..."
           pylint . --exit-zero 
+          echo "Pylint completed."
+          echo "Running Black..."
           black --check .
+          echo "Black completed."
+          echo "Running isort..."
           isort . --check-only
+          echo "isort completed."
 
   test-api:
     name: Test Backend

@@ -6,9 +6,13 @@ from unittest.mock import MagicMock
 from adapters.ports.meal_repository import MealRepository
 from entities.meal import Meal
 from use_cases.exceptions import AccessDeniedError
-from use_cases.meals import (CreateMealUseCase, DeleteMealUseCase,
-                             ReadMealByIdUseCase, ReadUserMealsUseCase,
-                             UpdateMealUseCase)
+from use_cases.meals import (
+    CreateMealUseCase,
+    DeleteMealUseCase,
+    ReadMealByIdUseCase,
+    ReadUserMealsUseCase,
+    UpdateMealUseCase,
+)
 
 
 class TestReadMealsUseCase(unittest.TestCase):

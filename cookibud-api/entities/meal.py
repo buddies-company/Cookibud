@@ -1,4 +1,5 @@
 """Meal entity definition."""
+
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -6,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 class RecipeEntry(BaseModel):
     """Entry of a recipe in a meal, with servings"""
+
     recipe_id: str
     title: Optional[str] = None
     servings: int = 1

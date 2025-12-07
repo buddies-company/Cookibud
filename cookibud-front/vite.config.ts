@@ -15,6 +15,11 @@ const manifestForPlugIn: Partial<VitePWAOptions> = {
       sizes: '1024x1024',
       type: 'image/png',
       purpose: 'favicon'
+    },{
+      src: '/assets/pal_head.png',
+      sizes: '1024x1024',
+      type: 'image/png',
+      purpose: 'favicon'
     },
     ],
     theme_color: '#201b5b',
