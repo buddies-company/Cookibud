@@ -11,7 +11,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential gcc \
     && rm -rf /var/lib/apt/lists/* \
     && python -m pip install --upgrade pip setuptools wheel \
-    && pip install -r requirements.txt
+    && pip install -r requirements.txt \
+    && mkdir -p /app/static/uploads
 
 # copy source
 COPY cookibud-api/ /app/

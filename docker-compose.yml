@@ -22,6 +22,7 @@ services:
       - "8000:8000"
     volumes:
       - ./cookibud-api:/app:ro
+      - uploads_data:/app/static/uploads
 
   front:
     env_file: cookibud-front/.env
@@ -39,3 +40,5 @@ services:
 volumes:
   mongo-data:
     name: cookibud-mongo-data
+  uploads_data:
+    name: cookibud-uploads-data

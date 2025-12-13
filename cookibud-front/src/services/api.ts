@@ -1,7 +1,7 @@
 import { useToast } from "@soilhat/react-components";
 import { saveDataToCache, getCachedData } from "./idb";
 
-const getApiUrl = (url: string) => {
+export const getApiUrl = (url: string) => {
     const isDemo = localStorage.getItem("demo")
     const api = isDemo ? "/demo" : import.meta.env.VITE_API;
     const postfix = isDemo ? ".json" : "";

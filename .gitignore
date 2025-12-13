@@ -90,3 +90,4 @@ dist-ssr
 
 .env
 .npmrc
+cookibud-api/static/uploads/

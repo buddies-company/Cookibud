@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     adapter: str = "in_memory"
     mongo_uri: str = "mongodb://localhost:27017/"
     frontend_url: str = "http://localhost:5173"
+    uploads_dir: str = "static/uploads"
 
     model_config = SettingsConfigDict(env_file=".env")
 

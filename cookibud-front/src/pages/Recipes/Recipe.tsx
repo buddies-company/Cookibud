@@ -1,21 +1,16 @@
-import { Container, Heading, Card, Form, Input, Button, Textarea, StackedList, Modal } from "@soilhat/react-components";
+import { Container, Heading, Card, Form, Input, Button, Textarea, StackedList, Modal, ImageUploader } from "@soilhat/react-components";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEventHandler, type KeyboardEvent } from "react";
-import { callApi } from "../../services/api";
+import { callApi, getApiUrl } from "../../services/api";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { IRecipe, IIngredient } from "./types";
 
-interface IIngredient { quantity: number, name: string, id:string }
-
-interface IRecipe {
-  id?: string;
-  title?: string;
-  description?: string;
-  ingredients?: IIngredient[];
-}
 
 export default function Recipe() {
   const [recipe, setRecipe] = useState<IRecipe>({});
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const { recipeId } = useParams();
   const { t } = useTranslation("translation", { keyPrefix: "pages.recipe" });
   const navigate = useNavigate();
@@ -43,7 +38,7 @@ export default function Recipe() {
   const addOrUpdateIngredient = (ing: IIngredient, index?: number) => {
     setRecipe((prev) => {
       const ingredients = Array.isArray(prev.ingredients) ? [...prev.ingredients] : [];
-      const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+      const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
       const withId = { ...ing, id: ing.id || genId() };
       if (typeof index === "number" && index >= 0 && index < ingredients.length) {
         ingredients[index] = withId;
@@ -64,34 +59,81 @@ export default function Recipe() {
     })
   }
 
-  const handleSubmitEvent = (e: FormEvent) => {
+  const handleSubmitEvent = async (e: FormEvent) => {
     e.preventDefault();
-    const payload = recipe;
+    const oldImageUrl = recipe.image_url;
+    // If there is a new image file selected, upload it and get the new URL
+    let newImageUrl: string | null = null;
+    if (imageFile) newImageUrl = await uploadImage(imageFile);
+
+    // Build payload deterministically using the new image URL when present
+    const payload = newImageUrl ? { ...recipe, image_url: newImageUrl } : recipe;
+
     if (recipeId === "new") {
       callApi("/recipes", "POST", undefined, payload)
         .then(() => navigate("/recipes"))
         .catch(console.error);
     } else {
       callApi(`/recipes/${recipeId}`, "PUT", undefined, payload)
-        .then(() => navigate("/recipes"))
+        .then(() => {
+          // Only delete the old image if we replaced it with a different one
+          if (oldImageUrl && newImageUrl && oldImageUrl !== newImageUrl) {
+            callApi(`/uploads?file_url=${oldImageUrl}`, "DELETE")
+              .then(() => navigate("/recipes"))
+              .catch(console.error);
+          } else navigate("/recipes");
+        })
         .catch(console.error);
     }
   }
 
-  const handleDelete: MouseEventHandler<HTMLButtonElement> = (e) => {
+  const handleDelete: MouseEventHandler<HTMLButtonElement> = async (e) => {
     e.preventDefault();
     if (recipeId && recipeId != "new") {
+      const oldImageUrl = recipe.image_url;
       callApi(`/recipes/${recipeId}`, "DELETE")
-        .then(() => navigate("/recipes"))
+        .then(() => {
+          if (oldImageUrl) callApi(`/uploads?file_url=${oldImageUrl}`, "DELETE")
+            .then(() => navigate("/recipes"))
+            .catch(console.error);
+          else navigate("/recipes");
+        })
         .catch(console.error);
     }
   }
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    setIsUploading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await callApi(`/uploads`, 'POST', undefined, formData);
+      const fileUrl = res?.data?.file_url ?? null;
+      if (fileUrl) {
+        setRecipe((prev) => ({ ...prev, image_url: fileUrl }));
+      }
+      return fileUrl;
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+      throw error; // Propagate the error to prevent saving the recipe
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <Container>
       <Heading title={recipeId === "new" ? t("new_recipe") : `${recipe.title}`} />
       <Card>
         <Form onSubmit={handleSubmitEvent}>
+          <ImageUploader
+            initialImageUrl={recipe.image_url ? getApiUrl(recipe.image_url) : undefined}
+            placeholderImageUrl={"/assets/placeholder_recipe.png"}
+            uploadImage={setImageFile}
+            isUploading={isUploading}
+          />
           <Input
             name="title"
             type="string"
@@ -119,7 +161,7 @@ export default function Recipe() {
             onChange={handleInput}
             markdown
           />
-          {(recipeId && recipeId != "new")&& <Button type="button" className="bg-red-500" onClick={handleDelete}>{t("delete_recipe")}</Button>}
+          {(recipeId && recipeId != "new") && <Button type="button" className="bg-red-500" onClick={handleDelete}>{t("delete_recipe")}</Button>}
           <Button type="submit">{t("save_recipe")}</Button>
         </Form>
       </Card>
@@ -127,7 +169,7 @@ export default function Recipe() {
   );
 }
 
-const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredient, index?: number, onSave?: (ing:IIngredient, index?:number)=>void, onDelete?: (index:number)=>void, names?: string[] }) => {
+const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredient, index?: number, onSave?: (ing: IIngredient, index?: number) => void, onDelete?: (index: number) => void, names?: string[] }) => {
   const [open, setOpen] = useState(false)
   const [ingredient, setIngredient] = useState<IIngredient>(data || { id: "", name: "", quantity: 0 });
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -158,7 +200,7 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
     const { name, value, type } = e.target;
     setIngredient((prev) => ({
       ...prev,
-      [name]: type==="number" ? Number(value):value,
+      [name]: type === "number" ? Number(value) : value,
     }))
   }
 
@@ -203,43 +245,43 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
   return (
     <div>
       {ingredient?.name ? <Button type="button" onClick={() => setOpen(true)}>{ingredient.name} {ingredient.quantity ? `(${ingredient.quantity}g)` : ""}</Button>
-      : <Button type="button" onClick={() => setOpen(true)} className="border-2 border-dashed border-gray-300 dark:border-gray-600 dark:text-white bg-transparent text-center cursor-pointer">{t("add_ingredient")}</Button>}
+        : <Button type="button" onClick={() => setOpen(true)} className="border-2 border-dashed border-gray-300 dark:border-gray-600 dark:text-white bg-transparent text-center cursor-pointer">{t("add_ingredient")}</Button>}
       <Modal open={open} onClose={() => setOpen(false)}>
-          <div className="relative">
-            <Input
-              label={t("add_ingredient")}
-              value={ingredient?.name || ""}
-              name="name"
-              onChange={handleInput}
-              onKeyDown={onKeyDown}
-              autoComplete="off"
-            />
-            {suggestions.length > 0 && (
-              <div className="absolute z-20 mt-1 w-full max-h-48 overflow-auto bg-white dark:bg-gray-800 border rounded shadow-sm">
-                {suggestions.map((s, i) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className={`w-full text-left p-2 ${i === focused ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
-                    onMouseDown={(ev) => { ev.preventDefault(); pickSuggestion(s); }}
-                    onMouseEnter={() => setFocused(i)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="relative">
           <Input
-            label={t("add_quantity")}
-            value={ingredient?.quantity || 0}
-            type="number"
-            rightIcon="g"
-            name="quantity"
+            label={t("add_ingredient")}
+            value={ingredient?.name || ""}
+            name="name"
             onChange={handleInput}
+            onKeyDown={onKeyDown}
+            autoComplete="off"
           />
-          {ingredient?.id && <Button type="button" className="bg-red-500" onClick={handleDelete}>{t("delete_ingredient")}</Button>}
-          <Button type="button" onClick={handleSubmit}>{t("save_ingredient")}</Button>
+          {suggestions.length > 0 && (
+            <div className="absolute z-20 mt-1 w-full max-h-48 overflow-auto bg-white dark:bg-gray-800 border rounded shadow-sm">
+              {suggestions.map((s, i) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={`w-full text-left p-2 ${i === focused ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+                  onMouseDown={(ev) => { ev.preventDefault(); pickSuggestion(s); }}
+                  onMouseEnter={() => setFocused(i)}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <Input
+          label={t("add_quantity")}
+          value={ingredient?.quantity || 0}
+          type="number"
+          rightIcon="g"
+          name="quantity"
+          onChange={handleInput}
+        />
+        {ingredient?.id && <Button type="button" className="bg-red-500" onClick={handleDelete}>{t("delete_ingredient")}</Button>}
+        <Button type="button" onClick={handleSubmit}>{t("save_ingredient")}</Button>
       </Modal>
     </div>
   )

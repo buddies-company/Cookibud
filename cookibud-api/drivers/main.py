@@ -5,11 +5,12 @@ import time
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import iterate_in_threadpool
 
 from drivers.config import settings
 from drivers.dependencies import get_token_header
-from drivers.routers import auth, meals, recipes
+from drivers.routers import auth, meals, recipes, uploads
 
 logger = logging.getLogger("uvicorn.trace")
 
@@ -28,6 +29,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount(
+    f"/{settings.uploads_dir}",
+    StaticFiles(directory=settings.uploads_dir),
+    name="static_uploads",
+)
+
 
 @app.middleware("http")
 async def middleware(request: Request, call_next):
@@ -43,7 +50,10 @@ async def middleware(request: Request, call_next):
 
     res_body = [section async for section in response.body_iterator]
     response.body_iterator = iterate_in_threadpool(iter(res_body))
-    res_body = res_body[0].decode()
+    try:
+        res_body = [section.decode() for section in res_body]
+    except Exception:  # pylint: disable=broad-except
+        res_body = ["<non-decodable content>"]
 
     # Add the background task to the response object to queue the job
     logger.debug(
@@ -70,5 +80,11 @@ app.include_router(
     meals.router,
     prefix="/meals",
     tags=["meals"],
+    dependencies=[Depends(get_token_header)],
+)
+app.include_router(
+    uploads.router,
+    prefix="/uploads",
+    tags=["uploads"],
     dependencies=[Depends(get_token_header)],
 )

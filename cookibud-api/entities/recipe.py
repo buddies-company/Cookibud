@@ -22,3 +22,4 @@ class Recipe(BaseModel):
     author_id: str | None = None  # user who created this recipe
     children: list["Recipe"] = []
     tags: list[str] = []
+    image_url: str | None = None  # URL to an image of the recipe
