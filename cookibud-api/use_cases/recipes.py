@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from adapters.ports.recipe_repository import RecipeRepository
 from entities.recipe import Recipe
 from use_cases.exceptions import AccessDeniedError
+from use_cases.units import normalize_unit_and_qty
 
 
 @dataclass
@@ -48,6 +49,15 @@ class CreateRecipeUseCase:
         """Create recipe with automatic author_id association"""
         if not recipe_data.title:
             raise ValueError("Recipe title cannot be empty.")
+        # normalize ingredient quantities if the recipe includes unit information
+        normalized_ingredients = []
+        for ing in recipe_data.ingredients or []:
+            qty, unit = normalize_unit_and_qty(ing.quantity, getattr(ing, "unit", None))
+            new_ing = ing.model_copy()
+            new_ing.quantity = qty
+            new_ing.unit = unit
+            normalized_ingredients.append(new_ing)
+        recipe_data.ingredients = normalized_ingredients
         recipe_data.author_id = user_id
         return self.recipe_repository.create(recipe_data)
 
@@ -67,6 +77,19 @@ class UpdateRecipeUseCase:
         recipe: Recipe = existing_recipes[0]
         if recipe.author_id != user_id:
             raise AccessDeniedError("Only the author can update this recipe")
+
+        # Normalize ingredients if present in the update payload
+        if recipe_data.ingredients is not None:
+            normalized_ingredients = []
+            for ing in recipe_data.ingredients:
+                qty, unit = normalize_unit_and_qty(
+                    ing.quantity, getattr(ing, "unit", None)
+                )
+                new_ing = ing.model_copy()
+                new_ing.quantity = qty
+                new_ing.unit = unit
+                normalized_ingredients.append(new_ing)
+            recipe_data.ingredients = normalized_ingredients
 
         return self.recipe_repository.update(
             recipe_id,

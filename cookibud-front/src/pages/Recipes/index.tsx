@@ -5,7 +5,7 @@ import { callApi, getApiUrl } from "../../services/api";
 import type { IRecipe } from "./types";
 
 export default function Recipes() {
-  const [recipes, setRecipes] = useState([]);
+  const [recipes, setRecipes] = useState<IRecipe[]>([]);
   const navigate = useNavigate();
 
   const addRecipe=()=>{
@@ -13,7 +13,7 @@ export default function Recipes() {
   }
 
   useEffect(() => {
-    callApi("/recipes")
+    callApi<IRecipe[]>("/recipes")
       .then((res) => setRecipes(res.data))
       .catch((error) => console.error("Error fetching recipes:", error));
   }, []);

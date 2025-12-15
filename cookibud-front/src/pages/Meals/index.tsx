@@ -27,7 +27,7 @@ export default function MealsPage() {
 
   useEffect(() => {
     // load meals and recipes
-    callApi("/meals").then(res => setMeals(res.data || [])).catch(() => {});
+    callApi<Meal[]>("/meals").then(res => setMeals(res.data || [])).catch(() => {});
   }, []);
 
   const mealsByDate = meals.reduce<Record<string, Meal[]>>((acc, m) => {
@@ -49,8 +49,8 @@ export default function MealsPage() {
       const meal = dayMeals[0];
       setEditingMealId(meal.id ?? null);
       // map backend items/recipes to local plannedRecipes
-      const items = (meal.items ?? []) as any[];
-  const mapped: MealRecipe[] = items.map(it => ({ recipe_id: it.recipe_id ?? it.recipeId, title: it.title ?? it.recipe_title ?? it.recipeTitle, servings: it.servings ?? 1 }));
+      const items = meal.items ?? [];
+      const mapped: MealRecipe[] = items.map(it => ({ recipe_id: it.recipe_id, title: it.title ?? it.recipe_id, servings: it.servings ?? 1 }));
       setPlannedRecipes(mapped);
     } else {
       setEditingMealId(null);
@@ -86,7 +86,7 @@ export default function MealsPage() {
         await callApi("/meals", "POST", undefined, payload);
       }
       // refresh meals
-      const res = await callApi("/meals");
+      const res = await callApi<Meal[]>("/meals");
       setMeals(res.data || []);
       setModalOpen(false);
     } catch (err) {
@@ -160,7 +160,8 @@ export default function MealsPage() {
           </form>
       </Modal>
       <Modal open={groceryModalOpen} onClose={() => setGroceryModalOpen(false)}>
-        <div className="max-w-2xl mx-auto p-4">
+        {/* Ensure modal content sits beneath the navbar and remains scrollable on small screens */}
+        <div className="max-w-2xl mx-auto p-4 mt-16 sm:mt-20 max-h-[calc(100vh-4rem)] overflow-auto z-50">
           <GroceryPeriod meals={meals} />
         </div>
       </Modal>

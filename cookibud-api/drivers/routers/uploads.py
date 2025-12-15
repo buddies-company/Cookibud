@@ -2,10 +2,9 @@ import os
 import shutil
 from uuid import uuid4
 
-from fastapi import UploadFile, File, APIRouter
+from fastapi import APIRouter, File, UploadFile
 
 from drivers.config import settings
-
 
 router = APIRouter()
 

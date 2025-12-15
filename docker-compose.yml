@@ -29,8 +29,6 @@ services:
     build:
       context: .
       dockerfile: cookibud-front/Dockerfile
-      args:
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     restart: unless-stopped
     depends_on:
       - api

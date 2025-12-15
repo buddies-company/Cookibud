@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useMemo, useEffect } from "react";
+import { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { callApi } from "../services/api";
 import type { User } from "../utils/constants/types";
@@ -36,56 +36,73 @@ const AuthProvider = () => {
         }
     }, [location]);
 
-    const loginAction = async (data: LoginData) => {
+    const computeRedirect = (loc: ReturnType<typeof useLocation>) => {
+        let redirectTo = new URLSearchParams(loc.search).get("redirectTo");
+        try {
+            if (!redirectTo && typeof sessionStorage !== 'undefined') {
+                const last = sessionStorage.getItem('lastVisited');
+                if (last && !last.startsWith('/auth')) redirectTo = last;
+            }
+        } catch (err) {
+            console.debug('failed to read lastVisited from sessionStorage', err);
+        }
+        if (!redirectTo || redirectTo.startsWith('/auth')) redirectTo = "/";
+        return redirectTo;
+    }
+
+    const getErrorMessage = (err: unknown) => {
+        if (err && typeof err === 'object' && 'message' in err) {
+            const m = (err as { message?: unknown }).message;
+            if (typeof m === 'string') return m;
+        }
+        return String(err);
+    }
+
+    const loginAction = useCallback(async (data: LoginData) => {
         const formData = new FormData();
         formData.append('username', data.username);
         formData.append('password', data.password);
-        callApi("/token", "POST", undefined, formData).then((res) => {
+        try {
+            const res = await callApi<{ access_token: string }>("/token", "POST", undefined, formData);
             if (res.data.access_token) {
                 setUser({ username: data.username });
                 localStorage.setItem("user", JSON.stringify({ username: data.username }));
                 localStorage.setItem("token", res.data.access_token);
-                // prefer explicit redirectTo query param, otherwise use lastVisited saved in sessionStorage
-                let redirectTo = new URLSearchParams(location.search).get("redirectTo");
-                try {
-                    if (!redirectTo && typeof sessionStorage !== 'undefined') {
-                        const last = sessionStorage.getItem('lastVisited');
-                        if (last && !last.startsWith('/auth')) redirectTo = last;
-                    }
-                } catch (err) {
-                    console.debug('failed to read lastVisited from sessionStorage', err);
-                }
-                if (!redirectTo || redirectTo.startsWith('/auth')) redirectTo = "/";
+                // compute redirect target (prefers explicit redirectTo query param, otherwise lastVisited)
+                const redirectTo = computeRedirect(location);
                 navigate(redirectTo);
             }
-        }).catch((err) => {
-            if (err.message === "Unauthorized") {
+        } catch (err: unknown) {
+            const msg = getErrorMessage(err);
+            if (msg === "Unauthorized") {
                 error("Invalid username or password");
-            }
-            else {
-                console.log(err.message);
+            } else {
+                console.log(msg);
                 error("An error occurred while logging in. Please try again later.");
             }
-        })
-    }
+        }
+    }, [location, navigate, error]);
 
-    const registerAction = async (data: LoginData) => {
-        callApi("/auth/register", "POST", undefined, data).then(() => {
-            loginAction(data);
-        }).catch((err) => {
-            if (err.message === "Conflict") {
+    const registerAction = useCallback(async (data: LoginData) => {
+        try {
+            await callApi("/auth/register", "POST", undefined, data);
+            // on success, log them in
+            await loginAction(data);
+        } catch (err: unknown) {
+            const msg = getErrorMessage(err);
+            if (msg === "Conflict") {
                 error("User already exists");
             } else {
                 error("An error occurred while registering. Please try again later.");
             }
-        })
-    }
+        }
+    }, [loginAction, error]);
 
-    const logOut = () => {
+    const logOut = useCallback(() => {
         setUser(null);
         localStorage.clear();
         navigate("/auth/login");
-    }
+    }, [navigate]);
     const value = useMemo(() => ({ user, loginAction, registerAction, logOut }), [user, loginAction, registerAction, logOut]);
 
     return <AuthContext.Provider value={value}>

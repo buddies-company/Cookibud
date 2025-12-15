@@ -1,6 +1,7 @@
 import { Container, Heading, Card, Form, Input, Button, Textarea, StackedList, Modal, ImageUploader } from "@soilhat/react-components";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEventHandler, type KeyboardEvent } from "react";
 import { callApi, getApiUrl } from "../../services/api";
+import { formatQtyUnit } from "../../utils/quantities";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { IRecipe, IIngredient } from "./types";
@@ -17,12 +18,12 @@ export default function Recipe() {
 
   useEffect(() => {
     if (recipeId && recipeId != "new") {
-      callApi(`/recipes/${recipeId}`)
+      callApi<IRecipe>(`/recipes/${recipeId}`)
         .then((res) => setRecipe(res.data))
         .catch((error) => console.error("Error fetching recipe:", error));
     }
     // fetch existing ingredient names for datalist
-    callApi(`/recipes/ingredient-names`)
+    callApi<string[]>(`/recipes/ingredient-names`)
       .then((res) => setIngredientNames(res.data || []))
       .catch(() => setIngredientNames([]));
   }, [recipeId]);
@@ -39,7 +40,7 @@ export default function Recipe() {
     setRecipe((prev) => {
       const ingredients = Array.isArray(prev.ingredients) ? [...prev.ingredients] : [];
       const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-      const withId = { ...ing, id: ing.id || genId() };
+      const withId = { ...ing, id: ing.id || genId(), unit: ing.unit || 'g' };
       if (typeof index === "number" && index >= 0 && index < ingredients.length) {
         ingredients[index] = withId;
       } else {
@@ -87,18 +88,17 @@ export default function Recipe() {
     }
   }
 
-  const handleDelete: MouseEventHandler<HTMLButtonElement> = async (e) => {
+  const handleDelete: MouseEventHandler<HTMLButtonElement> = (e) => {
     e.preventDefault();
     if (recipeId && recipeId != "new") {
       const oldImageUrl = recipe.image_url;
       callApi(`/recipes/${recipeId}`, "DELETE")
         .then(() => {
           if (oldImageUrl) callApi(`/uploads?file_url=${oldImageUrl}`, "DELETE")
-            .then(() => navigate("/recipes"))
             .catch(console.error);
-          else navigate("/recipes");
         })
         .catch(console.error);
+      navigate("/recipes");
     }
   }
 
@@ -109,7 +109,7 @@ export default function Recipe() {
     formData.append('file', file);
 
     try {
-      const res = await callApi(`/uploads`, 'POST', undefined, formData);
+      const res = await callApi<{file_url:string}>(`/uploads`, 'POST', undefined, formData);
       const fileUrl = res?.data?.file_url ?? null;
       if (fileUrl) {
         setRecipe((prev) => ({ ...prev, image_url: fileUrl }));
@@ -156,7 +156,7 @@ export default function Recipe() {
           <Textarea
             name="description"
             label={t("description")}
-            placeholder={t("description")}
+            placeholder={recipe.description || t("description")}
             value={recipe.description || ""}
             onChange={handleInput}
             markdown
@@ -171,7 +171,7 @@ export default function Recipe() {
 
 const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredient, index?: number, onSave?: (ing: IIngredient, index?: number) => void, onDelete?: (index: number) => void, names?: string[] }) => {
   const [open, setOpen] = useState(false)
-  const [ingredient, setIngredient] = useState<IIngredient>(data || { id: "", name: "", quantity: 0 });
+  const [ingredient, setIngredient] = useState<IIngredient>(data || { id: "", name: "", quantity: 0, unit: 'g' });
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [focused, setFocused] = useState<number>(-1)
   const { t } = useTranslation("translation", { keyPrefix: "pages.recipe" });
@@ -233,7 +233,7 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
     e.preventDefault();
     const wasNew = data === undefined;
     if (onSave) onSave(ingredient, index);
-    if (wasNew) setIngredient({ id: "", name: "", quantity: 0 });
+    if (wasNew) setIngredient({ id: "", name: "", quantity: 0, unit: 'g' });
     setOpen(false);
   }
 
@@ -244,7 +244,7 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
 
   return (
     <div>
-      {ingredient?.name ? <Button type="button" onClick={() => setOpen(true)}>{ingredient.name} {ingredient.quantity ? `(${ingredient.quantity}g)` : ""}</Button>
+      {ingredient?.name ? <Button type="button" onClick={() => setOpen(true)}>{ingredient.name} {ingredient.quantity ? `(${formatQtyUnit(ingredient.quantity, ingredient.unit)})` : ""}</Button>
         : <Button type="button" onClick={() => setOpen(true)} className="border-2 border-dashed border-gray-300 dark:border-gray-600 dark:text-white bg-transparent text-center cursor-pointer">{t("add_ingredient")}</Button>}
       <Modal open={open} onClose={() => setOpen(false)}>
         <div className="relative">
@@ -276,11 +276,31 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
           label={t("add_quantity")}
           value={ingredient?.quantity || 0}
           type="number"
-          rightIcon="g"
+          rightIcon={ingredient?.unit || 'g'}
           name="quantity"
           onChange={handleInput}
         />
-        {ingredient?.id && <Button type="button" className="bg-red-500" onClick={handleDelete}>{t("delete_ingredient")}</Button>}
+        <div className="mt-2">
+          <label htmlFor={`ing-unit-${index ?? '__new'}`} className="block text-sm">Unit</label>
+          <select
+            id={`ing-unit-${index ?? '__new'}`}
+            value={ingredient?.unit || ''}
+            name="unit"
+            onChange={(e) => setIngredient((prev) => ({ ...prev, unit: e.target.value }))}
+            className="mt-1 w-full rounded border px-2 py-1"
+          >
+            <option value="g">g</option>
+            <option value="kg">kg</option>
+            <option value="ml">ml</option>
+            <option value="l">l</option>
+            <option value="tbsp">tbsp</option>
+            <option value="tsp">tsp</option>
+            <option value="cup">cup</option>
+            <option value="pc">pc</option>
+            <option value="">(none)</option>
+          </select>
+        </div>
+        {ingredient?.id && <Button type="button" className="bg-danger dark:bg-danger-dark" onClick={handleDelete}>{t("delete_ingredient")}</Button>}
         <Button type="button" onClick={handleSubmit}>{t("save_ingredient")}</Button>
       </Modal>
     </div>

@@ -4,9 +4,103 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --color-primary: #1D4ED8;
-    --color-secondary: #9333EA;
+    --color-primary: #E08535;
+    --color-secondary: #A8D3B6;
     --color-accent: #FBBF24;
     --color-background: #F9FAFB;
     --color-text: #111827;
+    --color-danger: #F44336;
+
+    --color-danger-dark: #E57373;
+}
+
+/* Markdown / rendered HTML content styling */
+/* Use a .markdown wrapper for rendered content (see Meal.tsx) */
+.markdown {
+    color: var(--color-text);
+    line-height: 1.6;
+    font-size: 1rem;
+}
+.markdown h1, .markdown h2, .markdown h3, .markdown h4, .markdown h5, .markdown h6 {
+    color: var(--color-text);
+    font-weight: 600;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+.markdown h1 { font-size: 1.75rem; }
+.markdown h2 { font-size: 1.5rem; }
+.markdown h3 { font-size: 1.25rem; }
+.markdown p { margin-bottom: 0.75rem; }
+.markdown ul, .markdown ol { margin-left: 1.25rem; margin-bottom: 0.75rem; }
+.markdown ul li, .markdown ol li { margin-bottom: 0.4rem; }
+.markdown blockquote {
+    border-left: 4px solid rgba(0,0,0,0.08);
+    padding-left: 1rem;
+    color: var(--color-text);
+    background: rgba(0,0,0,0.04);
+    margin: 0.75rem 0;
+    border-radius: 0.25rem;
+}
+.markdown code {
+    background: rgba(0,0,0,0.03);
+    padding: 0.12rem 0.3rem;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
+    font-size: 0.95em;
+}
+.markdown pre {
+    background: rgba(0,0,0,0.06);
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    overflow: auto;
+    margin-bottom: 0.75rem;
+}
+.markdown img { max-width: 100%; height: auto; border-radius: 6px; }
+.markdown a { color: var(--color-primary); text-decoration: underline; }
+.markdown table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.markdown table th, .markdown table td { border: 1px solid rgba(0,0,0,0.08); padding: 0.5rem; }
+.markdown table th { background: rgba(0,0,0,0.03); }
+
+/* Keep markdown responsive in cards and modal containers */
+.markdown img, .markdown iframe {
+    max-width: 100%;
+}
+
+/* Small screens — slightly smaller text */
+@media (max-width: 640px) {
+    .markdown { font-size: 0.95rem; }
+    .markdown h1 { font-size: 1.5rem; }
+    .markdown h2 { font-size: 1.2rem; }
+}
+
+/* Dark mode: use slightly lighter text and subtle backgrounds for code, blockquote, and tables */
+.dark .markdown {
+    color: #E6EEF7; /* light text for dark backgrounds */
+}
+.dark .markdown h1, .dark .markdown h2, .dark .markdown h3, .dark .markdown h4, .dark .markdown h5, .dark .markdown h6 {
+    color: #FFFFFF;
+}
+.dark .markdown p { color: #E6EEF7; }
+.dark .markdown a { color: var(--color-accent); text-decoration: underline; }
+.dark .markdown blockquote {
+    border-left: 4px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    color: #E6EEF7;
+}
+.dark .markdown code {
+    background: rgba(255,255,255,0.03);
+    color: #F3F4F6;
+}
+.dark .markdown pre {
+    background: rgba(255,255,255,0.02);
+    color: #E6EEF7;
+    border-radius: 0.375rem;
+}
+.dark .markdown table th, .dark .markdown table td { border-color: rgba(255,255,255,0.06); }
+.dark .markdown table th { background: rgba(255,255,255,0.02); color: #FFF; }
+.dark .markdown img { border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+
+/* Small screens — slight adjustments in dark mode */
+@media (max-width: 640px) {
+    .dark .markdown { font-size: 0.95rem; }
 }

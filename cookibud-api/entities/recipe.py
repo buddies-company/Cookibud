@@ -7,7 +7,8 @@ class Ingredient(BaseModel):
     """Ingredient definition"""
 
     name: str
-    quantity: float | None = None  # in grams
+    quantity: float | None = None  # quantity normalized in base unit (grams/ml/pcs)
+    unit: str | None = None  # optional unit, may be 'g', 'ml', or '' for pieces
 
 
 class Recipe(BaseModel):

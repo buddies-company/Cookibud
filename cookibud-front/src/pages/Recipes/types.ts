@@ -1,5 +1,5 @@
 
-export interface IIngredient { quantity: number, name: string, id:string }
+export interface IIngredient { quantity: number, name: string, id:string, unit?: string }
 
 export interface IRecipe {
   id?: string;

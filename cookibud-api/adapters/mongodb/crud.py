@@ -34,12 +34,29 @@ class CRUD(ICRUD):
         # Ensure we insert a plain dict/document into MongoDB.
         doc = self._to_document(element)
         with Collection(self.uri, self.collection) as collection:
-            collection.insert_one(doc)
+            res = collection.insert_one(doc)
+            # Return the created entity with id normalized
+            doc["_id"] = res.inserted_id
+            return self._document_to_entity(doc)
 
     def update(self, item_id, **modifications):
         """Modify element"""
+
+        # Normalize modifications (e.g., BaseModel to dicts, lists of BaseModels to list of dicts)
+        def _normalize_value(v):
+            if isinstance(v, BaseModel):
+                return v.dict()
+            if isinstance(v, dict):
+                return {kk: _normalize_value(vv) for kk, vv in v.items()}
+            if isinstance(v, list):
+                return [_normalize_value(e) for e in v]
+            return v
+
+        normalized_mods = {k: _normalize_value(v) for k, v in modifications.items()}
+
         with Collection(self.uri, self.collection) as collection:
-            collection.update_one({"_id": ObjectId(item_id)}, {"$set": modifications})
+            oid = ObjectId(item_id) if ObjectId.is_valid(item_id) else item_id
+            collection.update_one({"_id": oid}, {"$set": normalized_mods})
 
     def delete(self, item):
         """Delete element"""

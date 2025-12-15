@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@soilhat/react-components';
 import { callApi } from '../../services/api';
+import type { IRecipe } from '../Recipes/types';
 
 type Props = {
   onSelect: (recipeId: string | undefined, title?: string) => void;
@@ -8,9 +9,9 @@ type Props = {
   allowFreeText?: boolean;
 };
 
-export default function SearchRecipe({ onSelect, placeholder = 'Search recipes...', allowFreeText = true }: Props) {
+export default function SearchRecipe({ onSelect, placeholder = 'Search recipes...', allowFreeText = true }: Readonly<Props>) {
   const [term, setTerm] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<IRecipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -21,7 +22,7 @@ export default function SearchRecipe({ onSelect, placeholder = 'Search recipes..
     if (!term || term.length < 2) { setSuggestions([]); setFocused(-1); return; }
     setLoading(true);
     const t = setTimeout(() => {
-      callApi(`/recipes?search=${encodeURIComponent(term)}`)
+      callApi<IRecipe[]>(`/recipes?search=${encodeURIComponent(term)}`)
         .then(res => setSuggestions(res.data || []))
         .catch(() => setSuggestions([]))
         .finally(() => setLoading(false));
@@ -29,9 +30,9 @@ export default function SearchRecipe({ onSelect, placeholder = 'Search recipes..
     return () => clearTimeout(t);
   }, [term]);
 
-  const pick = (s: any) => {
-    onSelect(s?.id, s?.title ?? s?.name);
-    setTerm(s?.title ?? s?.name ?? '');
+  const pick = (s: IRecipe) => {
+    onSelect(s?.id, s?.title);
+    setTerm(s?.title ?? '');
     setSuggestions([]);
     setFocused(-1);
   };
@@ -94,7 +95,7 @@ export default function SearchRecipe({ onSelect, placeholder = 'Search recipes..
                   onMouseLeave={() => setFocused(-1)}
                   onClick={() => pick(s)}
                 >
-                  {s.title ?? s.name}
+                  {s.title}
                 </button>
               </li>
             );

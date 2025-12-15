@@ -8,16 +8,19 @@ export const getApiUrl = (url: string) => {
     return `${api}${url}${postfix}`
 }
 
+// API response wrapper
+export type ApiResponse<T = unknown> = { data: T; offline: boolean };
+
 // Track in-flight GET requests to avoid duplicate network calls (useful during
 // React Strict Mode double-mount in development and for rapidly re-rendered components).
-const inFlightRequests: Map<string, Promise<any>> = new Map();
+const inFlightRequests: Map<string, Promise<ApiResponse<unknown>>> = new Map();
 
-export const callApi = async (
+export const callApi = async <T = unknown>(
     url: string,
-    method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
     save_name?: string | undefined,
     data?: BodyInit | null | undefined | object
-) => {
+): Promise<ApiResponse<T>> => {
     const offline = !navigator.onLine
     if (offline && save_name) {
         serveCachedData(save_name);
@@ -48,11 +51,11 @@ export const callApi = async (
     if (method === 'GET') {
         const key = apiUrl;
         if (inFlightRequests.has(key)) {
-            return inFlightRequests.get(key);
+            return inFlightRequests.get(key) as Promise<ApiResponse<T>>;
         }
 
-        const promise = fetch(apiUrl, { method, headers, body })
-            .then((response) => {
+        const promise: Promise<ApiResponse<T>> = fetch(apiUrl, { method, headers, body })
+            .then(async (response) => {
                 if (!response.ok) {
                     if (response.status === 403) {
                         localStorage.clear();
@@ -60,20 +63,20 @@ export const callApi = async (
                     }
                     throw new Error(response.statusText);
                 }
-                return response.json();
-            }).then(async (data) => {
-                if (save_name) await saveDataToCache(data, save_name);
-                return { data: data, offline: offline };
-            }).catch((err) => {
+                const json = (await response.json()) as T;
+                if (save_name) await saveDataToCache(json, save_name);
+                return { data: json, offline };
+            }).catch(async (err) => {
                 if (err.message === "Failed to fetch") {
-                    if (save_name) return serveCachedData(save_name);
+                    if (save_name) return serveCachedData<T>(save_name);
                 }
                 throw err;
             }).finally(() => {
                 inFlightRequests.delete(key);
             });
 
-        inFlightRequests.set(key, promise);
+        // store as loose ApiResponse<unknown> in the map for deduping
+        inFlightRequests.set(key, promise as Promise<ApiResponse<unknown>>);
         return promise;
     }
 
@@ -82,7 +85,7 @@ export const callApi = async (
         method: method,
         headers: headers,
         body: body,
-    }).then((response) => {
+    }).then(async (response) => {
         if (!response.ok) {
             if (response.status === 403) {
                 localStorage.clear();
@@ -90,24 +93,23 @@ export const callApi = async (
             }
             throw new Error(response.statusText);
         }
-        return response.json();
-    }).then(async (data) => {
-        if (save_name) await saveDataToCache(data, save_name);
-        return { data: data, offline: offline };
-    }).catch((err) => {
+        const json = (await response.json()) as T;
+        if (save_name) await saveDataToCache(json, save_name);
+        return { data: json, offline };
+    }).catch(async (err) => {
         if (err.message === "Failed to fetch") {
             if (save_name) {
-                return serveCachedData(save_name);
+                return serveCachedData<T>(save_name);
             }
         }
         throw err;
     });
 }
 
-const serveCachedData = async (save_name: string) => {
+const serveCachedData = async <T = unknown>(save_name: string): Promise<ApiResponse<T>> => {
     const { error, info } = useToast();
     const cached = await getCachedData(save_name);
     if (cached) info("You are offline. Serving cached data.");
     else error("You are offline and no cached data is available.");
-    return { data: cached, offline: true }
+    return { data: cached as T, offline: true };
 }

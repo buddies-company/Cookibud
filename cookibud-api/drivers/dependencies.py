@@ -33,7 +33,8 @@ def get_token_header(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenData
 
 
 def get_adapter_repository(
-    name: Literal["user", "recipe", "meal"], adapter: str = settings.adapter
+    name: Literal["user", "recipe", "meal", "grocery_list"],
+    adapter: str = settings.adapter,
 ):
     """Retrieve correct adapter class based on name
 
@@ -43,6 +44,10 @@ def get_adapter_repository(
         "user": {"module": "user_repository", "class": "UserRepository"},
         "recipe": {"module": "recipe_repository", "class": "RecipeRepository"},
         "meal": {"module": "meal_repository", "class": "MealRepository"},
+        "grocery_list": {
+            "module": "grocery_list_repository",
+            "class": "GroceryListRepository",
+        },
     }
     try:
         module_name = table_mapping.get(name).get("module")

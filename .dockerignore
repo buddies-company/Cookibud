@@ -2,3 +2,4 @@ cookibud-front/node_modules
 cookibud-front/dist
 cookibud-front/package-lock.json
 cookibud-api/.venv
+cookibud-api/static/uploads

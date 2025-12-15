@@ -1,30 +1,36 @@
 import { useEffect, useState, type MouseEventHandler } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { formatQtyUnit } from '../../utils/quantities';
 import { useParams, useNavigate } from 'react-router-dom';
 import { callApi } from '../../services/api';
 import { Container, Heading, Card, Button } from '@soilhat/react-components';
 import type { Meal } from '../../utils/constants/types';
+import type { IRecipe } from '../Recipes/types';
 
 export default function MealPage() {
     const { mealId } = useParams();
     const navigate = useNavigate();
     const [meal, setMeal] = useState<Meal | null>(null);
     const [grocery, setGrocery] = useState<Record<string, { qty?: number; unit?: string; entries: string[] }>>({});
+    const [recipesById, setRecipesById] = useState<Record<string, IRecipe>>({});
+    const [expandedRecipes, setExpandedRecipes] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!mealId) return;
         const load = async () => {
             try {
-                const res = await callApi(`/meals/${mealId}`);
-                const m: Meal = res.data;
+                    const res = await callApi<Meal>(`/meals/${mealId}`);
+                    const m: Meal = res.data;
                 setMeal(m);
                 // fetch each recipe details and aggregate ingredients
                 const agg: Record<string, { qty?: number; unit?: string; entries: string[] }> = {};
                 for (const r of m.items || []) {
-                    const rid = (r as any).recipe_id ?? (r as any).recipeId;
+                    const rid = r.recipe_id
                     if (!rid) continue;
-                    const recipeRes = await callApi(`/recipes/${rid}`);
+                    const recipeRes = await callApi<IRecipe>(`/recipes/${rid}`);
                     const recipe = recipeRes.data;
+                    setRecipesById(prev => ({ ...prev, [rid]: recipe }));
                     const servings = r.servings ?? 1;
                     for (const ing of recipe.ingredients || []) {
                         const name = ing.name;
@@ -32,11 +38,11 @@ export default function MealPage() {
                         const exec = /^\s*(\d*\.?\d+)\s*(.*)$/u.exec(qtyRaw);
                         if (exec) {
                             const v = Number.parseFloat(exec[1]) * servings;
-                            const unit = (exec[2] || '').trim();
+                                const unit = (exec[2] || '').trim();
                             const key = `${name}::${unit}`;
                             if (!agg[key]) agg[key] = { qty: 0, unit, entries: [] };
                             agg[key].qty = (agg[key].qty ?? 0) + v;
-                            agg[key].entries.push(`${recipe.title} ×${servings}: ${qtyRaw}`);
+                                    agg[key].entries.push(`${recipe.title} ×${servings}: ${qtyRaw}`);
                         } else {
                             const key = `${name}::`;
                             if (!agg[key]) agg[key] = { entries: [] };
@@ -88,8 +94,37 @@ export default function MealPage() {
                             <strong className="block">Planned recipes</strong>
                             <ul className="list-disc ml-5">
                                 {(meal?.items || []).map((r) => {
-                                    const rid = (r as any).recipe_id ?? (r as any).recipeId ?? Math.random().toString(36).slice(2, 7);
-                                    return <li key={rid}>{(r as any).title ?? (r as any).recipe_id ?? (r as any).recipeId} ×{r.servings}</li>
+                                    const rid = r.recipe_id ?? Math.random().toString(36).slice(2, 7);
+                                    return (
+                                        <li key={rid} className="mb-2">
+                                            <div className="flex items-center justify-between">
+                                                <div>{r.title ?? r.recipe_id} ×{r.servings}</div>
+                                                <div>
+                                                    <Button onClick={() => setExpandedRecipes(prev => ({ ...prev, [rid]: !prev[rid] }))} className="px-2 py-1">{expandedRecipes[rid] ? 'Hide' : 'View'}</Button>
+                                                </div>
+                                            </div>
+                                            {expandedRecipes[rid] && recipesById[rid] && (
+                                                <Card className="mt-2 p-3 bg-white dark:bg-gray-900">
+                                                    <div>
+                                                        <strong>Ingredients:</strong>
+                                                        <ul className="list-disc ml-5">
+                                                            {recipesById[rid]?.ingredients?.map((ing) => {
+                                                                // scaled qty
+                                                                const qty = typeof ing.quantity === 'number' ? ing.quantity * (r.servings ?? 1) : undefined;
+                                                                const unit = ing.unit ?? '';
+                                                                return <li key={ing.name}>{ing.name}{qty ? ` — ${formatQtyUnit(qty, unit)}` : ''}</li>
+                                                            })}
+                                                        </ul>
+                                                    </div>
+                                                    <div className="mb-2">
+                                                        <div className="markdown">
+                                                            <ReactMarkdown>{recipesById[rid].description ?? ''}</ReactMarkdown>
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            )}
+                                        </li>
+                                    )
                                 })}
                             </ul>
                         </div>
