@@ -15,7 +15,7 @@ const AuthContext = createContext<{
 }>({ user: undefined, loginAction: () => void 0, registerAction: () => void 0, logOut: () => void 0 });
 
 const AuthProvider = () => {
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") ?? "{}"));
+    const [user, setUser] = useState<User | undefined>(JSON.parse(localStorage.getItem("user") ?? "{}"));
     const location = useLocation();
     const navigate = useNavigate();
     const { error } = useToast();
@@ -65,9 +65,21 @@ const AuthProvider = () => {
         try {
             const res = await callApi<{ access_token: string }>("/token", "POST", undefined, formData);
             if (res.data.access_token) {
-                setUser({ username: data.username });
-                localStorage.setItem("user", JSON.stringify({ username: data.username }));
                 localStorage.setItem("token", res.data.access_token);
+                let userId: string | undefined = undefined;
+                try {
+                    const parts = res.data.access_token.split('.');
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(atob(parts[1]));
+                        userId = payload.user_id;
+                        // payload.username should match provided username
+                    }
+                } catch (err) {
+                    console.debug('Failed to decode token payload', err);
+                }
+                const userObj = { username: data.username, id: userId };
+                setUser(userObj);
+                localStorage.setItem("user", JSON.stringify(userObj));
                 // compute redirect target (prefers explicit redirectTo query param, otherwise lastVisited)
                 const redirectTo = computeRedirect(location);
                 navigate(redirectTo);
@@ -99,7 +111,7 @@ const AuthProvider = () => {
     }, [loginAction, error]);
 
     const logOut = useCallback(() => {
-        setUser(null);
+        setUser(undefined);
         localStorage.clear();
         navigate("/auth/login");
     }, [navigate]);

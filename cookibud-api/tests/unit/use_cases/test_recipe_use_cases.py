@@ -13,6 +13,7 @@ from use_cases.recipes import (
     ReadRecipeByIdUseCase,
     ReadRecipesUseCase,
     UpdateRecipeUseCase,
+    AddReviewUseCase,
 )
 
 
@@ -308,3 +309,44 @@ class TestGetIngredientNames(unittest.TestCase):
 
         self.recipe_repository.read.assert_called_once_with()
         self.assertEqual(ingredient_names, [])
+
+
+class TestAddReviewUseCase(unittest.TestCase):
+    """Unit tests for AddReviewUseCase"""
+
+    def setUp(self):
+        self.recipe_repository = MagicMock(spec=RecipeRepository)
+        self.use_case = AddReviewUseCase(self.recipe_repository)
+
+    def test_add_review_success(self):
+        """Test adding a review to an existing recipe"""
+        recipe_id = "r1"
+        existing_recipe = Recipe(
+            title="Pancakes", ingredients=[], description="Good", author_id="author1"
+        )
+        self.recipe_repository.read.return_value = [existing_recipe]
+        # simulate repository update returning the updated recipe
+        self.recipe_repository.update.return_value = existing_recipe
+
+        rev = self.use_case(
+            recipe_id, user_id="user123", username="tester", rating=4, comment="Nice!"
+        )
+
+        # repository should have been read and updated
+        self.recipe_repository.read.assert_called_once_with(id=recipe_id)
+        self.recipe_repository.update.assert_called_once()
+        self.assertEqual(rev.user_id, "user123")
+        self.assertEqual(rev.username, "tester")
+        self.assertEqual(rev.rating, 4)
+
+    def test_add_review_not_found(self):
+        """Test adding a review to a non-existing recipe raises"""
+        recipe_id = "missing"
+        self.recipe_repository.read.return_value = []
+
+        with self.assertRaises(ValueError) as ctx:
+            self.use_case(
+                recipe_id, user_id="user1", username="u", rating=5, comment=None
+            )
+
+        self.assertEqual(str(ctx.exception), "Recipe not found")

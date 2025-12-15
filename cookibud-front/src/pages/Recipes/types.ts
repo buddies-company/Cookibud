@@ -7,4 +7,6 @@ export interface IRecipe {
   description?: string;
   ingredients?: IIngredient[];
   image_url?: string;
+  author_id?: string;
+  reviews?: { id?: string; user_id?: string; username?: string; rating: number; comment?: string; created_at?: string }[];
 }

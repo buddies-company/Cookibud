@@ -10,6 +10,7 @@ from entities.recipe import Recipe
 from entities.user import TokenData
 from use_cases.exceptions import AccessDeniedError
 from use_cases.recipes import (
+    AddReviewUseCase,
     CreateRecipeUseCase,
     DeleteRecipeUseCase,
     GetIngredientNamesUseCase,
@@ -30,6 +31,7 @@ def get_recipe_usecases():
         "create_recipe": CreateRecipeUseCase(repo),
         "update_recipe": UpdateRecipeUseCase(repo),
         "delete_recipe": DeleteRecipeUseCase(repo),
+        "add_review": AddReviewUseCase(repo),
         "get_ingredient_names": GetIngredientNamesUseCase(repo),
     }
 
@@ -76,6 +78,29 @@ def update_recipe(
         return usecases["update_recipe"](item_id, item, token.user_id)
     except AccessDeniedError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
+
+
+@router.post("/{item_id}/reviews", status_code=201)
+def add_review(
+    item_id: str,
+    payload: dict,
+    token: Annotated[TokenData, Depends(get_token_header)],
+    usecases: dict = Depends(get_recipe_usecases),
+):
+    """Add a review to a recipe (authenticated users)"""
+    rating = int(payload.get("rating", 0))
+    comment = payload.get("comment")
+    if rating < 1 or rating > 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Rating must be between 1 and 5",
+        )
+    try:
+        return usecases["add_review"](
+            item_id, token.user_id, token.username or token.user_id, rating, comment
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.delete("/{item_id}", status_code=204)

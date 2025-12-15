@@ -24,3 +24,14 @@ class Recipe(BaseModel):
     children: list["Recipe"] = []
     tags: list[str] = []
     image_url: str | None = None  # URL to an image of the recipe
+    # Reviews provided by users (rating 1-5 and optional comment)
+    reviews: list["Review"] = []
+
+
+class Review(BaseModel):
+    id: str | None = None
+    user_id: str | None = None
+    username: str | None = None
+    rating: int
+    comment: str | None = None
+    created_at: str | None = None

@@ -1,5 +1,7 @@
 import { Container, Heading, Card, Form, Input, Button, Textarea, StackedList, Modal, ImageUploader } from "@soilhat/react-components";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEventHandler, type KeyboardEvent } from "react";
+import ReactMarkdown from 'react-markdown';
+import { useAuth } from "../../routing/AuthProvider";
 import { callApi, getApiUrl } from "../../services/api";
 import { formatQtyUnit } from "../../utils/quantities";
 import { useNavigate, useParams } from "react-router-dom";
@@ -10,16 +12,18 @@ import type { IRecipe, IIngredient } from "./types";
 export default function Recipe() {
   const [recipe, setRecipe] = useState<IRecipe>({});
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
+  const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const { recipeId } = useParams();
+  const [isEditing, setIsEditing] = useState<boolean>(() => (recipeId === 'new'));
   const { t } = useTranslation("translation", { keyPrefix: "pages.recipe" });
   const navigate = useNavigate();
 
   useEffect(() => {
     if (recipeId && recipeId != "new") {
       callApi<IRecipe>(`/recipes/${recipeId}`)
-        .then((res) => setRecipe(res.data))
+        .then((res) => { setRecipe(res.data); setIsEditing(false); })
         .catch((error) => console.error("Error fetching recipe:", error));
     }
     // fetch existing ingredient names for datalist
@@ -125,46 +129,87 @@ export default function Recipe() {
 
   return (
     <Container>
-      <Heading title={recipeId === "new" ? t("new_recipe") : `${recipe.title}`} />
-      <Card>
-        <Form onSubmit={handleSubmitEvent}>
-          <ImageUploader
-            initialImageUrl={recipe.image_url ? getApiUrl(recipe.image_url) : undefined}
-            placeholderImageUrl={"/assets/placeholder_recipe.png"}
-            uploadImage={setImageFile}
-            isUploading={isUploading}
-          />
-          <Input
-            name="title"
-            type="string"
-            label={t("title")}
-            placeholder={t("title")}
-            autoComplete="off"
-            onChange={handleInput}
-            size="md"
-            variant="outline"
-            value={recipe.title || ""}
-          />
-          <div className="label">Ingredients</div>
-          <StackedList emptyMessage="No ingredients added yet.">
-            {recipe.ingredients && recipe.ingredients.length > 0 && recipe.ingredients.map((ingredient, index) => {
-              return <Ingredient data={ingredient} key={ingredient.id ?? index} index={index} onSave={addOrUpdateIngredient} onDelete={deleteIngredient} names={ingredientNames} />
-            })}
-            {/* Ingredient without data is used to add new ingredient */}
-            <Ingredient key="__add" onSave={addOrUpdateIngredient} names={ingredientNames} />
-          </StackedList>
-          <Textarea
-            name="description"
-            label={t("description")}
-            placeholder={recipe.description || t("description")}
-            value={recipe.description || ""}
-            onChange={handleInput}
-            markdown
-          />
-          {(recipeId && recipeId != "new") && <Button type="button" className="bg-red-500" onClick={handleDelete}>{t("delete_recipe")}</Button>}
-          <Button type="submit">{t("save_recipe")}</Button>
-        </Form>
-      </Card>
+      <Heading title={recipeId === "new" ? t("new_recipe") : `${recipe.title}`}>
+        {recipeId !== "new" && !isEditing && recipe.author_id && user && user.id === recipe.author_id && (
+          <Button onClick={() => setIsEditing(true)} className="px-3 py-1">Edit</Button>
+        )}
+      </Heading>
+
+      {isEditing ? (
+        <Card>
+          <Form onSubmit={handleSubmitEvent}>
+            <ImageUploader
+              initialImageUrl={recipe.image_url ? getApiUrl(recipe.image_url) : undefined}
+              placeholderImageUrl={"/assets/placeholder_recipe.png"}
+              uploadImage={setImageFile}
+              isUploading={isUploading}
+            />
+            <Input
+              name="title"
+              type="string"
+              label={t("title")}
+              placeholder={t("title")}
+              autoComplete="off"
+              onChange={handleInput}
+              size="md"
+              variant="outline"
+              value={recipe.title || ""}
+            />
+            <div className="label">Ingredients</div>
+            <StackedList emptyMessage="No ingredients added yet.">
+              {recipe.ingredients && recipe.ingredients.length > 0 && recipe.ingredients.map((ingredient, index) => {
+                return <Ingredient data={ingredient} key={ingredient.id ?? index} index={index} onSave={addOrUpdateIngredient} onDelete={deleteIngredient} names={ingredientNames} />
+              })}
+              {/* Ingredient without data is used to add new ingredient */}
+              <Ingredient key="__add" onSave={addOrUpdateIngredient} names={ingredientNames} />
+            </StackedList>
+            <Textarea
+              name="description"
+              label={t("description")}
+              placeholder={recipe.description || t("description")}
+              value={recipe.description || ""}
+              onChange={handleInput}
+              markdown
+            />
+            {(recipeId && recipeId != "new") && <Button type="button" className="bg-red-500" onClick={handleDelete}>{t("delete_recipe")}</Button>}
+            <Button type="submit">{t("save_recipe")}</Button>
+          </Form>
+        </Card>
+      ) : (
+        <>
+          <Card className="p-4">
+            {recipe.image_url && <img src={getApiUrl(recipe.image_url)} alt={recipe.title} className="w-full max-h-72 object-cover rounded mb-4" />}
+            <div className="mb-3">
+              <strong>Ingredients</strong>
+              <ul className="list-disc ml-5 mt-2">
+                {(recipe.ingredients || []).map((ing) => (
+                  <li key={ing.id}>{ing.name}{ing.quantity ? ` — ${formatQtyUnit(ing.quantity, ing.unit)}` : ''}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="markdown mb-3"><ReactMarkdown>{recipe.description || ''}</ReactMarkdown></div>
+          </Card>
+
+          <Card className="p-4 mt-4">
+            <h3 className="text-lg font-medium">Reviews</h3>
+            <div className="mt-3 space-y-3">
+              {(recipe.reviews || []).length === 0 && <div className="text-sm text-gray-600">No reviews yet.</div>}
+              {(recipe.reviews || []).map((r) => (
+                <div key={r.id} className="border rounded p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{r.username || 'User'}</div>
+                    <div className="text-sm text-gray-600">{new Date(r.created_at || '').toLocaleString()}</div>
+                  </div>
+                  <div className="mt-1">{Array.from({length: r.rating}).map(() => '★').join('')} {r.rating}/5</div>
+                  {r.comment && <div className="mt-2">{r.comment}</div>}
+                </div>
+              ))}
+            </div>
+
+            <ReviewForm recipeId={recipeId!} onAdded={(rev) => setRecipe((prev) => ({ ...prev, reviews: [...(prev.reviews || []), rev] }))} />
+          </Card>
+        </>
+      )}
     </Container>
   );
 }
@@ -303,6 +348,48 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
         {ingredient?.id && <Button type="button" className="bg-danger dark:bg-danger-dark" onClick={handleDelete}>{t("delete_ingredient")}</Button>}
         <Button type="button" onClick={handleSubmit}>{t("save_ingredient")}</Button>
       </Modal>
+    </div>
+  )
+}
+
+const ReviewForm = ({ recipeId, onAdded }: { recipeId: string, onAdded: (rev: any) => void }) => {
+  const [rating, setRating] = useState<number>(5);
+  const [comment, setComment] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+
+  if (!user) return <div className="mt-4 text-sm text-gray-600">Please log in to leave a review.</div>;
+
+  const submit = async () => {
+    if (!recipeId) return;
+    setLoading(true);
+    try {
+      const res = await callApi<any>(`/recipes/${recipeId}/reviews`, 'POST', undefined, { rating, comment });
+      onAdded(res.data);
+      setRating(5);
+      setComment('');
+    } catch (err) {
+      console.error('Failed to submit review', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="flex gap-2 items-center">
+        <label className="text-sm">Rating</label>
+        <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="rounded border px-2 py-1">
+          {[5,4,3,2,1].map(v => <option key={v} value={v}>{v} star{v>1?'s':''}</option>)}
+        </select>
+      </div>
+      <div className="mt-2">
+        <label className="block text-sm">Comment</label>
+        <textarea value={comment} onChange={(e) => setComment(e.target.value)} className="w-full rounded border mt-1 p-2" rows={3} />
+      </div>
+      <div className="mt-2">
+        <Button onClick={submit} disabled={loading} className="px-3 py-1">Submit review</Button>
+      </div>
     </div>
   )
 }

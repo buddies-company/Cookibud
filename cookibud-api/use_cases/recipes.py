@@ -1,9 +1,11 @@
 """Recipe management use cases"""
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from adapters.ports.recipe_repository import RecipeRepository
-from entities.recipe import Recipe
+from entities.recipe import Recipe, Review
 from use_cases.exceptions import AccessDeniedError
 from use_cases.units import normalize_unit_and_qty
 
@@ -134,3 +136,40 @@ class GetIngredientNamesUseCase:
                 if name:
                     names.add(name)
         return sorted(names)
+
+
+@dataclass
+class AddReviewUseCase:
+    recipe_repository: RecipeRepository
+
+    def __call__(
+        self,
+        recipe_id: str,
+        user_id: str,
+        username: str,
+        rating: int,
+        comment: str | None,
+    ) -> Review:
+        # fetch recipe
+        recipes = self.recipe_repository.read(id=recipe_id)
+        if not recipes:
+            raise ValueError("Recipe not found")
+        recipe = recipes[0]
+        # create review
+        rev = Review(
+            id=str(uuid4()),
+            user_id=user_id,
+            username=username,
+            rating=int(rating),
+            comment=comment,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        recipe.reviews = recipe.reviews or []
+        recipe.reviews.append(rev)
+        # persist
+        updated = self.recipe_repository.update(
+            recipe_id,
+            **recipe.model_dump(exclude_unset=True, exclude={"id", "author_id"})
+        )
+        # return the newly created review
+        return rev

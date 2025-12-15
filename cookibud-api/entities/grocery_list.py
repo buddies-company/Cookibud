@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 class GroceryItem(BaseModel):
     """Grocery item definition"""
+
     id: Optional[str] = None
     name: str
     qty: Optional[float] = None
@@ -18,6 +19,7 @@ class GroceryItem(BaseModel):
 
 class GroceryList(BaseModel):
     """Grocery list definition"""
+
     id: Optional[str] = None
     user_id: Optional[str] = None
     created_at: Optional[datetime] = None

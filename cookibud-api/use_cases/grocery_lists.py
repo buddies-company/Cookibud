@@ -15,6 +15,7 @@ GROCERY_NOT_FOUND_OR_DENIED = "Grocery list not found or access denied"
 @dataclass
 class ReadUserGroceryListsUseCase:
     """Retrieve all grocery lists for a specific user"""
+
     grocery_repository: GroceryListRepository
 
     def __call__(self, user_id: str) -> list[GroceryList]:
@@ -24,6 +25,7 @@ class ReadUserGroceryListsUseCase:
 @dataclass
 class ReadGroceryListByIdUseCase:
     """Retrieve a grocery list by ID with ownership verification"""
+
     grocery_repository: GroceryListRepository
 
     def __call__(self, grocery_id: str, user_id: str) -> GroceryList | None:
@@ -36,6 +38,7 @@ class ReadGroceryListByIdUseCase:
 @dataclass
 class CreateGroceryListUseCase:
     """Create a new grocery list for the authenticated user with unit normalization"""
+
     grocery_repository: GroceryListRepository
 
     def __call__(self, grocery_data: GroceryList, user_id: str) -> GroceryList:
@@ -68,6 +71,7 @@ class CreateGroceryListUseCase:
 @dataclass
 class UpdateGroceryListItemStatusUseCase:
     """Update the 'bought' status of a specific item in a grocery list"""
+
     grocery_repository: GroceryListRepository
 
     def __call__(
@@ -97,6 +101,7 @@ class UpdateGroceryListItemStatusUseCase:
 @dataclass
 class UpdateAllGroceryListItemsStatusUseCase:
     """Update the 'bought' status of all items in a grocery list"""
+
     grocery_repository: GroceryListRepository
 
     def __call__(self, grocery_id: str, bought: bool, user_id: str) -> GroceryList:
@@ -116,6 +121,7 @@ class UpdateAllGroceryListItemsStatusUseCase:
 @dataclass
 class DeleteGroceryListUseCase:
     """Delete a grocery list with ownership verification"""
+
     grocery_repository: GroceryListRepository
 
     def __call__(self, grocery_id: str, user_id: str) -> None:

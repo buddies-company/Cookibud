@@ -2,10 +2,12 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# copy source, install and build
-# COPY cookibud-front/package.json ./package.json
+# Copy only package files first so the install layer is cached if lockfile didn't change
+COPY cookibud-front/package*.json ./
+RUN npm ci --prefer-offline --no-audit --progress=false
+
+# Now copy the rest of your app and build
 COPY cookibud-front/ ./
-RUN npm i
 RUN npm run build
 
 ### Stage 2: serve with nginx
