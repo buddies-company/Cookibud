@@ -48,9 +48,51 @@ class TestReadRecipes(unittest.TestCase):
         recipes = self.use_case(search=search_term)
 
         self.recipe_repository.read.assert_called_once_with(
-            title={"$regex": search_term, "$options": "i"}
+            **{"$or": [
+                {"title": {"$regex": search_term, "$options": "i"}},
+                {"description": {"$regex": search_term, "$options": "i"}},
+                {"ingredients.name": {"$regex": search_term, "$options": "i"}},
+            ]}
         )
         self.assertEqual(recipes, expected_recipes)
+
+    def test_read_recipes_with_tags(self):
+        """Test reading recipes filtered by tags"""
+        tags = ["breakfast", "quick"]
+        expected_recipes = [Recipe(title="Pancakes", ingredients=[], description="Good", tags=tags)]
+        self.recipe_repository.read.return_value = expected_recipes
+
+        res = self.use_case(search=None, tags=tags)
+
+        self.recipe_repository.read.assert_called_once_with(tags={"$in": tags})
+        self.assertEqual(res, expected_recipes)
+
+    def test_read_recipes_by_ingredient(self):
+        """Test reading recipes filtered by ingredient name"""
+        ingredient = "egg"
+        expected_recipes = [Recipe(title="Omelette", ingredients=[{"name": "eggs"}], description="...")]
+        self.recipe_repository.read.return_value = expected_recipes
+
+        res = self.use_case(search=None, tags=None, ingredient=ingredient)
+
+        self.recipe_repository.read.assert_called_once_with(**{"ingredients.name": {"$regex": ingredient, "$options": "i"}})
+        self.assertEqual(res, expected_recipes)
+
+    def test_read_recipes_with_pagination(self):
+        """Test paginated read returns items and metadata"""
+        # prepare 50 recipes as total
+        total = [Recipe(title=f"R{i}", ingredients=[], description="x") for i in range(50)]
+        page_items = total[10:20]
+        # when called first time for total, return total; second time for paged, return page_items
+        self.recipe_repository.read.side_effect = [total, page_items]
+
+        res = self.use_case(search=None, tags=None, ingredient=None, page=2, page_size=10)
+
+        self.assertIsInstance(res, dict)
+        self.assertEqual(res["total"], 50)
+        self.assertEqual(res["page"], 2)
+        self.assertEqual(res["page_size"], 10)
+        self.assertEqual(res["items"], page_items)
 
 
 class TestReadRecipeById(unittest.TestCase):

@@ -1,6 +1,8 @@
 
 export interface IIngredient { quantity: number, name: string, id:string, unit?: string }
 
+export interface IReview { id?: string; user_id?: string; username?: string; rating: number; comment?: string; created_at?: string }
+
 export interface IRecipe {
   id?: string;
   title?: string;
@@ -8,5 +10,6 @@ export interface IRecipe {
   ingredients?: IIngredient[];
   image_url?: string;
   author_id?: string;
-  reviews?: { id?: string; user_id?: string; username?: string; rating: number; comment?: string; created_at?: string }[];
+  tags?: string[];
+  reviews?: IReview[];
 }

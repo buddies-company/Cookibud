@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from adapters.ports.meal_repository import MealRepository
-from entities.meal import Meal
+from entities.meal import Meal, RecipeEntry
 from use_cases.exceptions import AccessDeniedError
 from use_cases.meals import (
     CreateMealUseCase,
@@ -12,6 +12,9 @@ from use_cases.meals import (
     ReadMealByIdUseCase,
     ReadUserMealsUseCase,
     UpdateMealUseCase,
+    AddRecipeToMealUseCase,
+    RemoveRecipeFromMealUseCase,
+    PlanRecipeUseCase,
 )
 
 
@@ -159,3 +162,61 @@ class TestDeleteMealUseCase(unittest.TestCase):
             self.use_case(meal_id=meal_id, user_id=user_id)
 
         self.meal_repository.read.assert_called_once_with(id=meal_id, user_id=user_id)
+
+
+class TestAddRemovePlanRecipeUseCases(unittest.TestCase):
+    """Tests for adding/removing/planning recipes in meals"""
+
+    def setUp(self):
+        self.meal_repository = MagicMock(spec=MealRepository)
+        self.add_use_case = AddRecipeToMealUseCase(self.meal_repository)
+        self.remove_use_case = RemoveRecipeFromMealUseCase(self.meal_repository)
+        self.plan_use_case = PlanRecipeUseCase(self.meal_repository)
+
+    def test_add_recipe_to_existing_meal(self):
+        meal_id = "meal1"
+        user_id = "user123"
+        existing_meal = Meal(id=meal_id, date="2024-01-01", items=[], user_id=user_id)
+        self.meal_repository.read.return_value = [existing_meal]
+        self.meal_repository.update.return_value = existing_meal
+
+        entry = {"recipe_id": "r1", "title": "Pancakes", "servings": 2}
+        res = self.add_use_case(meal_id, entry, user_id)
+
+        self.meal_repository.read.assert_called_once_with(id=meal_id, user_id=user_id)
+        self.meal_repository.update.assert_called_once()
+
+    def test_remove_recipe_from_meal(self):
+        meal_id = "meal1"
+        user_id = "user123"
+        existing_meal = Meal(id=meal_id, date="2024-01-01", items=[RecipeEntry(recipe_id="r1", servings=2)], user_id=user_id)
+        self.meal_repository.read.return_value = [existing_meal]
+        self.meal_repository.update.return_value = existing_meal
+
+        self.remove_use_case(meal_id, "r1", user_id)
+
+        self.meal_repository.read.assert_called_once_with(id=meal_id, user_id=user_id)
+        self.meal_repository.update.assert_called_once()
+
+    def test_plan_recipe_creates_or_updates(self):
+        date = "2024-02-01"
+        user_id = "user123"
+        entry = {"recipe_id": "r1", "title": "Pancakes", "servings": 3}
+
+        # No existing meal -> create
+        self.meal_repository.read.return_value = []
+        created = Meal(id="mnew", date=date, items=[RecipeEntry(**entry)], user_id=user_id)
+        self.meal_repository.create.return_value = created
+
+        res = self.plan_use_case(date, entry, user_id)
+        self.meal_repository.read.assert_called_with(date=date, user_id=user_id)
+        self.meal_repository.create.assert_called_once()
+
+        # Existing meal -> update
+        existing = Meal(id="m1", date=date, items=[], user_id=user_id)
+        self.meal_repository.read.return_value = [existing]
+        self.meal_repository.update.return_value = existing
+
+        res2 = self.plan_use_case(date, entry, user_id)
+        self.meal_repository.read.assert_called_with(date=date, user_id=user_id)
+        self.meal_repository.update.assert_called_once()

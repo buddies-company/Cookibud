@@ -6,12 +6,15 @@ import { callApi, getApiUrl } from "../../services/api";
 import { formatQtyUnit } from "../../utils/quantities";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { IRecipe, IIngredient } from "./types";
+import type { IRecipe, IIngredient, IReview } from "./types";
+import type { MealRecipe, Meal } from "../../utils/constants/types";
 
 
 export default function Recipe() {
   const [recipe, setRecipe] = useState<IRecipe>({});
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
+  const [userMeals, setUserMeals] = useState<Meal[]>([]);
+  const [planning, setPlanning] = useState(false);
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -25,6 +28,8 @@ export default function Recipe() {
       callApi<IRecipe>(`/recipes/${recipeId}`)
         .then((res) => { setRecipe(res.data); setIsEditing(false); })
         .catch((error) => console.error("Error fetching recipe:", error));
+      // load user's meals to find where this recipe is planned
+      callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])).catch(() => setUserMeals([]));
     }
     // fetch existing ingredient names for datalist
     callApi<string[]>(`/recipes/ingredient-names`)
@@ -155,6 +160,14 @@ export default function Recipe() {
               variant="outline"
               value={recipe.title || ""}
             />
+            <Input
+              name="tags"
+              type="string"
+              label="Tags (comma separated)"
+              placeholder="breakfast, quick"
+              onChange={(e) => setRecipe((prev) => ({ ...prev, tags: (e.target.value || '').split(',').map(s => s.trim()).filter(Boolean) }))}
+              value={(recipe.tags || []).join(', ')}
+            />
             <div className="label">Ingredients</div>
             <StackedList emptyMessage="No ingredients added yet.">
               {recipe.ingredients && recipe.ingredients.length > 0 && recipe.ingredients.map((ingredient, index) => {
@@ -178,6 +191,11 @@ export default function Recipe() {
       ) : (
         <>
           <Card className="p-4">
+            {(recipe.tags || []).length > 0 && (
+              <div className="mb-2">
+                {(recipe.tags || []).map(tg => <span key={tg} className="inline-block bg-gray-200 dark:bg-gray-700 rounded px-2 py-1 mr-2 text-sm">{tg}</span>)}
+              </div>
+            )}
             {recipe.image_url && <img src={getApiUrl(recipe.image_url)} alt={recipe.title} className="w-full max-h-72 object-cover rounded mb-4" />}
             <div className="mb-3">
               <strong>Ingredients</strong>
@@ -207,6 +225,32 @@ export default function Recipe() {
             </div>
 
             <ReviewForm recipeId={recipeId!} onAdded={(rev) => setRecipe((prev) => ({ ...prev, reviews: [...(prev.reviews || []), rev] }))} />
+            <div className="mt-4">
+              {user ? (
+                <Button onClick={() => setPlanning(true)} className="px-3 py-1">Plan this recipe</Button>
+              ) : (
+                <div className="text-sm text-gray-600">Please log in to plan this recipe.</div>
+              )}
+            </div>
+            <PlanModal open={planning} onClose={() => setPlanning(false)} recipeId={recipeId!} recipeTitle={recipe.title || ''} onPlanned={() => { callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])).catch(() => {}); setPlanning(false); }} />
+
+            <div className="mt-4">
+              <h4 className="font-medium">Planned in</h4>
+              {userMeals?.filter(m => m.items?.some((it:MealRecipe) => it.recipe_id === recipeId)).map(m => (
+                <div key={m.id} className="mt-2 border rounded p-2 flex items-center justify-between">
+                  <div>{new Date(m.date).toLocaleDateString()}</div>
+                  <div className="flex gap-2">
+                    <Button 
+                      color_name="danger"
+                      onClick={() => {
+                      callApi<void>(`/meals/${m.id}/items/${recipeId}`, 'DELETE')
+                        .then(() => callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])).catch(() => {}))
+                        .catch(console.error);
+                    }}>Remove</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </Card>
         </>
       )}
@@ -345,14 +389,14 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
             <option value="">(none)</option>
           </select>
         </div>
-        {ingredient?.id && <Button type="button" className="bg-danger dark:bg-danger-dark" onClick={handleDelete}>{t("delete_ingredient")}</Button>}
+        {ingredient?.id && <Button type="button" color_name="danger" onClick={handleDelete}>{t("delete_ingredient")}</Button>}
         <Button type="button" onClick={handleSubmit}>{t("save_ingredient")}</Button>
       </Modal>
     </div>
   )
 }
 
-const ReviewForm = ({ recipeId, onAdded }: { recipeId: string, onAdded: (rev: any) => void }) => {
+const ReviewForm = ({ recipeId, onAdded }: { recipeId: string, onAdded: (rev: IReview) => void }) => {
   const [rating, setRating] = useState<number>(5);
   const [comment, setComment] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -364,7 +408,7 @@ const ReviewForm = ({ recipeId, onAdded }: { recipeId: string, onAdded: (rev: an
     if (!recipeId) return;
     setLoading(true);
     try {
-      const res = await callApi<any>(`/recipes/${recipeId}/reviews`, 'POST', undefined, { rating, comment });
+      const res = await callApi<IReview>(`/recipes/${recipeId}/reviews`, 'POST', undefined, { rating, comment });
       onAdded(res.data);
       setRating(5);
       setComment('');
@@ -391,5 +435,44 @@ const ReviewForm = ({ recipeId, onAdded }: { recipeId: string, onAdded: (rev: an
         <Button onClick={submit} disabled={loading} className="px-3 py-1">Submit review</Button>
       </div>
     </div>
+  )
+}
+
+const PlanModal = ({ open, onClose, recipeId, recipeTitle, onPlanned }: { open: boolean, onClose: () => void, recipeId: string, recipeTitle: string, onPlanned: (meal: Meal) => void }) => {
+  const [date, setDate] = useState<string>(new Date().toISOString().slice(0,10));
+  const [servings, setServings] = useState<number>(1);
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    setLoading(true);
+    try {
+      const entry = { recipe_id: recipeId, title: recipeTitle, servings };
+      const res = await callApi<Meal>(`/meals/plan`, 'POST', undefined, { date, entry });
+      onPlanned(res.data);
+    } catch (err) {
+      console.error('Failed to plan recipe', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose}>
+      <div>
+        <h3 className="text-lg font-medium">Plan {recipeTitle}</h3>
+        <div className="mt-2">
+          <label className="block text-sm">Date</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 rounded border px-2 py-1" />
+        </div>
+        <div className="mt-2">
+          <label className="block text-sm">Servings</label>
+          <input type="number" value={servings} min={1} onChange={(e) => setServings(Number(e.target.value))} className="mt-1 rounded border px-2 py-1" />
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Button onClick={submit} disabled={loading}>Plan</Button>
+          <Button onClick={onClose} className="bg-gray-200">Cancel</Button>
+        </div>
+      </div>
+    </Modal>
   )
 }

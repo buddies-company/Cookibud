@@ -25,8 +25,26 @@ class CRUD(ICRUD):
                 filters["_id"] = ObjectId(val)
             else:
                 filters["_id"] = val
+        # extract pagination/sort helpers if provided by callers
+        limit = None
+        skip = None
+        sort = None
+        if "_limit" in filters:
+            limit = filters.pop("_limit")
+        if "_skip" in filters:
+            skip = filters.pop("_skip")
+        if "_sort" in filters:
+            sort = filters.pop("_sort")
         with Collection(self.uri, self.collection) as collection:
             documents = collection.find(filters)
+            # apply sort/skip/limit if provided
+            if sort:
+                # sort should be a list of tuples [(field, direction)]
+                documents = documents.sort(sort)
+            if skip:
+                documents = documents.skip(int(skip))
+            if limit:
+                documents = documents.limit(int(limit))
             return [self._document_to_entity(doc) for doc in documents]
 
     def create(self, element):

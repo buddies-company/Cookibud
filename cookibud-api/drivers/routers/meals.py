@@ -15,6 +15,9 @@ from use_cases.meals import (
     ReadMealByIdUseCase,
     ReadUserMealsUseCase,
     UpdateMealUseCase,
+    AddRecipeToMealUseCase,
+    RemoveRecipeFromMealUseCase,
+    PlanRecipeUseCase,
 )
 
 router = APIRouter()
@@ -29,6 +32,9 @@ def get_meal_usecases(token: Annotated[TokenData, Depends(get_token_header)]):
         "create_meal": CreateMealUseCase(repo),
         "update_meal": UpdateMealUseCase(repo),
         "delete_meal": DeleteMealUseCase(repo),
+        "add_item": AddRecipeToMealUseCase(repo),
+        "remove_item": RemoveRecipeFromMealUseCase(repo),
+        "plan_recipe": PlanRecipeUseCase(repo),
     }, token.user_id
 
 
@@ -74,5 +80,39 @@ def delete_meal(item_id: str, usecases_and_user: tuple = Depends(get_meal_usecas
     usecases, user_id = usecases_and_user
     try:
         usecases["delete_meal"](item_id, user_id)
+    except AccessDeniedError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
+
+
+@router.post("/{meal_id}/items", status_code=201)
+def add_meal_item(meal_id: str, item: dict, usecases_and_user: tuple = Depends(get_meal_usecases)):
+    """Add a recipe entry to an existing meal (ownership verified)"""
+    usecases, user_id = usecases_and_user
+    try:
+        return usecases["add_item"](meal_id, item, user_id)
+    except AccessDeniedError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
+
+
+@router.delete("/{meal_id}/items/{recipe_id}", status_code=204)
+def remove_meal_item(meal_id: str, recipe_id: str, usecases_and_user: tuple = Depends(get_meal_usecases)):
+    """Remove a recipe entry from a meal"""
+    usecases, user_id = usecases_and_user
+    try:
+        usecases["remove_item"](meal_id, recipe_id, user_id)
+    except AccessDeniedError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
+
+
+@router.post("/plan", status_code=201)
+def plan_recipe(req: dict, usecases_and_user: tuple = Depends(get_meal_usecases)):
+    """Plan a recipe for a date; creates or appends to a meal for that date"""
+    usecases, user_id = usecases_and_user
+    date = req.get("date")
+    entry = req.get("entry")
+    if not date or not entry:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="date and entry required")
+    try:
+        return usecases["plan_recipe"](date, entry, user_id)
     except AccessDeniedError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e

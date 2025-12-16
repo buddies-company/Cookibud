@@ -9,6 +9,7 @@ from entities.recipe import Recipe, Review
 from use_cases.exceptions import AccessDeniedError
 from use_cases.units import normalize_unit_and_qty
 
+NOT_FOUND = "Recipe not found"
 
 @dataclass
 class ReadRecipesUseCase:
@@ -16,15 +17,64 @@ class ReadRecipesUseCase:
 
     recipe_repository: RecipeRepository
 
-    def __call__(self, search: str = None) -> list[Recipe]:
-        """Get recipes with optional search filter"""
+    def __call__(self, search: str = None, tags: list[str] | None = None, ingredient: str | None = None, page: int | None = None, page_size: int | None = None, sort_by: str | None = None, sort_dir: str = "asc") -> list[Recipe] | dict:
+        """Get recipes with optional search, tag, or ingredient filters.
+
+        - search: performs case-insensitive substring match against title, description or ingredient name
+        - tags: list of tags to match (any match)
+        - ingredient: match against ingredient name only
+        """
+        query: dict = {}
         if search:
-            # Build a case-insensitive substring match for MongoDB
-            # Using $regex with the search string and option 'i' for case-insensitive
-            return self.recipe_repository.read(
-                title={"$regex": search, "$options": "i"}
-            )
-        return self.recipe_repository.read()
+            query["$or"] = [
+                {"title": {"$regex": search, "$options": "i"}},
+                {"description": {"$regex": search, "$options": "i"}},
+                {"ingredients.name": {"$regex": search, "$options": "i"}},
+            ]
+        if tags:
+            query["tags"] = {"$in": tags}
+        if ingredient:
+            query["ingredients.name"] = {"$regex": ingredient, "$options": "i"}
+
+        if not (query or page):
+            return self.recipe_repository.read()
+        # when pagination is requested, perform paginated read and return metadata
+        if page is not None and page_size is not None:
+            # compute skip/limit
+            skip = max(0, (page - 1) * page_size)
+            # compute sort tuple if provided
+            sort_param = None
+            if sort_by:
+                dir_flag = 1 if sort_dir == "asc" else -1
+                sort_param = [(sort_by, dir_flag)]
+
+            # compute total count by reading without pagination
+            total_items = len(self.recipe_repository.read(**query))
+
+            items = self.recipe_repository.read(**{**query, "_skip": skip, "_limit": page_size, "_sort": sort_param} if sort_param else {**query, "_skip": skip, "_limit": page_size})
+            return {"items": items, "total": total_items, "page": page, "page_size": page_size}
+
+        # no pagination requested: simple read (with optional sort)
+        if sort_by:
+            dir_flag = 1 if sort_dir == "asc" else -1
+            return self.recipe_repository.read(**{**query, "_sort": [(sort_by, dir_flag)]})
+        return self.recipe_repository.read(**query)
+
+
+@dataclass
+class GetTagsUseCase:
+    """Return a deduplicated sorted list of tags used across recipes"""
+
+    recipe_repository: RecipeRepository
+
+    def __call__(self) -> list[str]:
+        recipes: list[Recipe] = self.recipe_repository.read()
+        tags = set()
+        for r in recipes:
+            for t in getattr(r, "tags", []) or []:
+                if t:
+                    tags.add(t)
+        return sorted(tags)
 
 
 @dataclass
@@ -74,7 +124,7 @@ class UpdateRecipeUseCase:
         """Update recipe if authored by user, raise AccessDeniedError otherwise"""
         existing_recipes = self.recipe_repository.read(id=recipe_id)
         if not existing_recipes:
-            raise AccessDeniedError("Recipe not found")
+            raise AccessDeniedError(NOT_FOUND)
 
         recipe: Recipe = existing_recipes[0]
         if recipe.author_id != user_id:
@@ -109,7 +159,7 @@ class DeleteRecipeUseCase:
         """Delete recipe if authored by user, raise AccessDeniedError otherwise"""
         existing_recipes = self.recipe_repository.read(id=recipe_id)
         if not existing_recipes:
-            raise AccessDeniedError("Recipe not found")
+            raise AccessDeniedError(NOT_FOUND)
 
         recipe: Recipe = existing_recipes[0]
         if recipe.author_id != user_id:
@@ -140,6 +190,7 @@ class GetIngredientNamesUseCase:
 
 @dataclass
 class AddReviewUseCase:
+    """Add a review to a recipe"""
     recipe_repository: RecipeRepository
 
     def __call__(
@@ -153,7 +204,7 @@ class AddReviewUseCase:
         # fetch recipe
         recipes = self.recipe_repository.read(id=recipe_id)
         if not recipes:
-            raise ValueError("Recipe not found")
+            raise ValueError(NOT_FOUND)
         recipe = recipes[0]
         # create review
         rev = Review(
@@ -167,7 +218,7 @@ class AddReviewUseCase:
         recipe.reviews = recipe.reviews or []
         recipe.reviews.append(rev)
         # persist
-        updated = self.recipe_repository.update(
+        self.recipe_repository.update(
             recipe_id,
             **recipe.model_dump(exclude_unset=True, exclude={"id", "author_id"})
         )

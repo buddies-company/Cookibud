@@ -48,7 +48,7 @@ class CreateGroceryListUseCase:
         grocery_data.created_at = datetime.now().astimezone()
         # Normalize items
         normalized_items: list[GroceryItem] = []
-        for item in grocery_data.items or []:
+        for item in grocery_data.items:
             # Ensure an id for each item
             if not item.id:
                 item.id = str(uuid.uuid4())

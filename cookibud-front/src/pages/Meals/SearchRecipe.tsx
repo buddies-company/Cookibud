@@ -23,7 +23,7 @@ export default function SearchRecipe({ onSelect, placeholder = 'Search recipes..
     setLoading(true);
     const t = setTimeout(() => {
       callApi<IRecipe[]>(`/recipes?search=${encodeURIComponent(term)}`)
-        .then(res => setSuggestions(res.data || []))
+        .then(res => setSuggestions(res.data))
         .catch(() => setSuggestions([]))
         .finally(() => setLoading(false));
     }, 250);

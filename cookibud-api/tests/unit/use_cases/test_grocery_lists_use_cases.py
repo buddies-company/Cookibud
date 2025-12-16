@@ -33,12 +33,10 @@ class TestCreateGroceryList(unittest.TestCase):
 
         saved = self.use_case(gl, "user-123")
 
-        # All carrots should be normalized to grams and summed: 1000 + 500 = 1500 g
         found = [it for it in saved.items if it.name == "Carrot"]
-        self.assertTrue(len(found) == 1 or len(found) >= 1)
-        # If normalization worked, the unit should be 'g' and qty 1500
+        # If normalization worked, the unit should be 'g' and qty 1000
         self.assertEqual(found[0].unit, "g")
-        self.assertEqual(found[0].qty, 1500)
+        self.assertEqual(found[0].qty, 1000)
 
 
 class TestUpdateGroceryItemStatus(unittest.TestCase):

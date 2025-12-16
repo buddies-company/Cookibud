@@ -16,6 +16,7 @@ from use_cases.recipes import (
     GetIngredientNamesUseCase,
     ReadRecipeByIdUseCase,
     ReadRecipesUseCase,
+    GetTagsUseCase,
     UpdateRecipeUseCase,
 )
 
@@ -33,15 +34,30 @@ def get_recipe_usecases():
         "delete_recipe": DeleteRecipeUseCase(repo),
         "add_review": AddReviewUseCase(repo),
         "get_ingredient_names": GetIngredientNamesUseCase(repo),
+        "get_tags": GetTagsUseCase(repo),
     }
 
 
 @router.get("")
 def read_recipes(
-    search: str | None = None, usecases: dict = Depends(get_recipe_usecases)
+    search: str | None = None,
+    tags: str | None = None,
+    ingredient: str | None = None,
+    page: int | None = None,
+    page_size: int | None = None,
+    sort_by: str | None = None,
+    sort_dir: str = "asc",
+    usecases: dict = Depends(get_recipe_usecases),
 ):
-    """Retrieve recipes. Optional `search` query param performs a case-insensitive title match."""
-    return usecases["read_recipes"](search)
+    """Retrieve recipes. Optional filters: `search`, `tags`, `ingredient`. Optional pagination: `page`, `page_size`. Optional sorting: `sort_by`, `sort_dir` (asc|desc)."""
+    tag_list = [t.strip() for t in tags.split(",")] if tags else None
+    return usecases["read_recipes"](search, tag_list, ingredient, page, page_size, sort_by, sort_dir)
+
+
+@router.get("/tags")
+def read_tags(usecases: dict = Depends(get_recipe_usecases)):
+    """Return all tags used in recipes"""
+    return usecases["get_tags"]()
 
 
 @router.post("", status_code=201)

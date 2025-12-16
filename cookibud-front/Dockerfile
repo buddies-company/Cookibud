@@ -4,9 +4,9 @@ WORKDIR /app
 
 # Copy only package files first so the install layer is cached if lockfile didn't change
 COPY cookibud-front/package*.json ./
-RUN npm ci --prefer-offline --no-audit --progress=false
+COPY cookibud-front/.npmrc ./
+RUN npm i
 
-# Now copy the rest of your app and build
 COPY cookibud-front/ ./
 RUN npm run build
 
