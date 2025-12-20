@@ -100,7 +100,7 @@ export default function MealPage() {
                                             <div className="flex items-center justify-between">
                                                 <div>{r.title ?? r.recipe_id} ×{r.servings}</div>
                                                 <div>
-                                                    <Button onClick={() => setExpandedRecipes(prev => ({ ...prev, [rid]: !prev[rid] }))} className="px-2 py-1">{expandedRecipes[rid] ? 'Hide' : 'View'}</Button>
+                                                    <Button onClick={() => setExpandedRecipes(prev => ({ ...prev, [rid]: !prev[rid] }))} className="px-2 py-1" variant='border'>{expandedRecipes[rid] ? 'Hide' : 'View'}</Button>
                                                 </div>
                                             </div>
                                             {expandedRecipes[rid] && recipesById[rid] && (

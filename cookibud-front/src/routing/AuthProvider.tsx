@@ -1,18 +1,13 @@
-import { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { callApi } from "../services/api";
-import type { User } from "../utils/constants/types";
+import type { User, LoginData } from "../utils/constants/types";
 import { useToast } from "@soilhat/react-components";
-
-interface LoginData { username: string, password: string }
+import { AuthContext } from "./AuthContext";
 
 export interface NumberOrStringDictionary {
     [index: string]: number | string | string[] | NumberOrStringDictionary;
 }
-
-const AuthContext = createContext<{
-    user?: User, loginAction: (data: LoginData) => Promise<void> | void, registerAction: (data: LoginData) => void, logOut: () => void
-}>({ user: undefined, loginAction: () => void 0, registerAction: () => void 0, logOut: () => void 0 });
 
 const AuthProvider = () => {
     const [user, setUser] = useState<User | undefined>(JSON.parse(localStorage.getItem("user") ?? "{}"));
@@ -123,7 +118,3 @@ const AuthProvider = () => {
 }
 
 export default AuthProvider;
-
-export const useAuth = () => {
-    return useContext(AuthContext);
-}

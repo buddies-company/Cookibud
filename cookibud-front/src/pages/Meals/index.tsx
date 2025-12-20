@@ -146,7 +146,7 @@ export default function MealsPage() {
                   <div key={`${p.recipe_id ?? 'free'}-${idx}`} className="flex items-center justify-between bg-gray-50 dark:bg-gray-900 rounded px-2 py-1 text-sm">
                     <div>{p.title} ×{p.servings}</div>
                     <div>
-                      <Button type="button" onClick={() => removePlannedRecipe(idx)} className="px-2 py-0">Remove</Button>
+                      <Button type="button" onClick={() => removePlannedRecipe(idx)} className="px-2 py-0 bg-state-danger">Remove</Button>
                     </div>
                   </div>
                 ))}
@@ -154,7 +154,7 @@ export default function MealsPage() {
 
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" onClick={() => setModalOpen(false)} className="px-3 py-1">Cancel</Button>
+              <Button type="button" onClick={() => setModalOpen(false)} className="px-3 py-1" variant="border">Cancel</Button>
               <Button type="submit" className="px-4 py-1">Save</Button>
             </div>
           </form>

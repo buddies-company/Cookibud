@@ -1,7 +1,7 @@
 import { Container, Heading, Card, Form, Input, Button, Textarea, StackedList, Modal, ImageUploader } from "@soilhat/react-components";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEventHandler, type KeyboardEvent } from "react";
 import ReactMarkdown from 'react-markdown';
-import { useAuth } from "../../routing/AuthProvider";
+import { useAuth } from "../../routing/useAuth";
 import { callApi, getApiUrl } from "../../services/api";
 import { formatQtyUnit } from "../../utils/quantities";
 import { useNavigate, useParams } from "react-router-dom";

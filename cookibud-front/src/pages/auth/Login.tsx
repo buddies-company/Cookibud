@@ -4,7 +4,7 @@ import { useState, type FormEvent, type ChangeEvent } from "react";
 
 import { Button, Form, Input, useToast } from "@soilhat/react-components";
 
-import { useAuth } from "../../routing/AuthProvider";
+import { useAuth } from "../../routing/useAuth";
 
 
 export default function Login() {
