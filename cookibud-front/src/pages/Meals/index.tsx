@@ -160,8 +160,7 @@ export default function MealsPage() {
           </form>
       </Modal>
       <Modal open={groceryModalOpen} onClose={() => setGroceryModalOpen(false)}>
-        {/* Ensure modal content sits beneath the navbar and remains scrollable on small screens */}
-        <div className="max-w-2xl mx-auto p-4 mt-16 sm:mt-20 max-h-[calc(100vh-4rem)] overflow-auto z-50">
+        <div className="max-w-2xl mx-auto p-4 max-h-[calc(100vh-4rem)] overflow-auto z-50">
           <GroceryPeriod meals={meals} />
         </div>
       </Modal>

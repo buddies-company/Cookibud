@@ -1,4 +1,4 @@
-import { Container, Heading, StackedList, Card, Button, Input } from "@soilhat/react-components";
+import { Container, Heading, StackedList, Card, Button, Input, Select, type Option } from "@soilhat/react-components";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { callApi, getApiUrl } from "../../services/api";
@@ -13,21 +13,22 @@ export default function Recipes() {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(12);
   const [total, setTotal] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  const addRecipe=()=>{
-    navigate("/recipes/new")
-  }
+  const sortOptions = [
+    { value: '', label: 'Default'},
+    { value: 'title:asc', label: 'Title (A → Z)'},
+    { value: 'title:desc', label: 'Title (Z → A)'},
+    { value: 'prep_time:asc', label: 'Prep time ↑'},
+    { value: 'prep_time:desc', label: 'Prep time ↓'},
+  ];
+  const [sortValue, setSortValue] = useState<Option>(sortOptions[0]);
 
   useEffect(() => {
-    // initial load and tags list
     callApi<string[]>('/recipes/tags')
       .then((res) => setAvailableTags(res.data || []))
       .catch(() => setAvailableTags([]));
   }, []);
 
-  // debounce search
   useEffect(() => {
     const t = setTimeout(() => {
       const qs = [] as string[];
@@ -35,77 +36,145 @@ export default function Recipes() {
       if (selectedTags?.length) qs.push(`tags=${encodeURIComponent(selectedTags.join(','))}`);
       if (page) qs.push(`page=${page}`);
       if (pageSize) qs.push(`page_size=${pageSize}`);
-      if (sortBy) qs.push(`sort_by=${encodeURIComponent(sortBy)}`);
-      if (sortDir) qs.push(`sort_dir=${encodeURIComponent(sortDir)}`);
+      
+      if (sortValue) {
+        const [field, dir] = sortValue.label.split(':');
+        qs.push(`sort_by=${encodeURIComponent(field)}`);
+        qs.push(`sort_dir=${encodeURIComponent(dir)}`);
+      }
+
       const qstr = qs.length ? `?${qs.join('&')}` : '';
       callApi<{items:IRecipe[], total: number, page: number, page_size: number}>(`/recipes${qstr}`)
         .then(r => {
           const data = r.data;
           setRecipes(data.items || []);
-          setTotal(typeof data.total === 'number' ? data.total : null);
+          setTotal(data.total ?? null);
         })
         .catch(console.error);
     }, 300);
     return () => clearTimeout(t);
-  }, [query, selectedTags, page, pageSize, sortBy, sortDir]);
+  }, [query, selectedTags, page, pageSize, sortValue]);
 
   return (
     <Container>
-      <Heading title="Recipes"><Button onClick={addRecipe}>New Recipe</Button></Heading>
-      <div className="mt-4 flex gap-4 items-center">
-        <Input placeholder="Search by name or ingredient..." value={query} onChange={(e) => { setQuery((e.target as HTMLInputElement).value); setPage(1); }} />
-        <ul className="flex gap-2 flex-wrap" aria-label="Available tags">
-          {availableTags.map(t => (
-            <button
-              key={t}
-              aria-pressed={selectedTags.includes(t)}
-              aria-label={`Toggle tag ${t}`}
-              onClick={() => {
-                setSelectedTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-                setPage(1);
-              }}
-              className={`px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 ${selectedTags.includes(t) ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}` }
-            >{t}</button>
-          ))}
-        </ul>
+      <Heading title="Recipes">
+        <Button onClick={() => navigate("/recipes/new")}>
+          New Recipe
+        </Button>
+      </Heading>
 
-        <div className="ml-auto flex items-center gap-2">
-          <label className="text-sm mr-2" htmlFor="sort-select">Sort</label>
-          <select id="sort-select" value={sortBy ?? ''} onChange={(e) => { const v = e.target.value; if (v) { const [field, dir] = v.split(':'); setSortBy(field); setSortDir((dir as 'asc'|'desc') || 'asc'); } else { setSortBy(null); } setPage(1); }} className="rounded border px-2 py-1">
-            <option value="">Default</option>
-            <option value="title:asc">Title (A → Z)</option>
-            <option value="title:desc">Title (Z → A)</option>
-            <option value="prep_time:asc">Prep time ↑</option>
-            <option value="prep_time:desc">Prep time ↓</option>
-            <option value="cook_time:asc">Cook time ↑</option>
-            <option value="cook_time:desc">Cook time ↓</option>
-          </select>
+      <div className="mt-6 flex flex-col md:flex-row gap-4 items-end md:items-center">
+        <div className="flex-1 w-full">
+          <Input 
+            placeholder="Search by name or ingredient..." 
+            value={query} 
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }} 
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {availableTags.map(t => {
+            const isActive = selectedTags.includes(t);
+            return (
+              <button
+                key={t}
+                onClick={() => {
+                  setSelectedTags(prev => isActive ? prev.filter(x => x !== t) : [...prev, t]);
+                  setPage(1);
+                }}
+                className={`
+                  px-3 py-1 rounded-full text-xs font-bold transition-all
+                  ${isActive 
+                    ? 'bg-primary text-text-on-primary' 
+                    : 'bg-surface-base dark:bg-surface-base-dark text-text-secondary hover:bg-surface-panel'}
+                `}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="w-full md:w-64">
+          <Select 
+            label="Sort by"
+            value={sortValue?.value} 
+            options={sortOptions} 
+            onChange={(e) => { setSortValue(sortOptions.find(o => o.value === e) || sortOptions[0]); setPage(1); }}
+          />
         </div>
       </div>
 
+      <div className="mt-8">
+        <StackedList 
+          onEmptyClick={() => navigate("/recipes/new")} 
+          emptyMessage="No recipes found. Click to add a new recipe."
+        >
+          {recipes.map((recipe) => (
+            <Card 
+              key={recipe.id} 
+              className="group cursor-pointer" 
+              onClick={() => navigate(`/recipes/${recipe.id}`)}
+            >
+              <Card.Header>
+                <img 
+                  src={recipe.image_url ? getApiUrl(recipe.image_url) : "/assets/placeholder_recipe.png"} 
+                  alt={recipe.title} 
+                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" 
+                />
+              </Card.Header>
+              <Card.Body>
+                <h3 className="font-bold text-text-primary dark:text-text-primary-dark">
+                  {recipe.title}
+                </h3>
+                <p className="text-sm text-text-secondary line-clamp-2">
+                  {recipe.description || "No description available."}
+                </p>
+              </Card.Body>
+            </Card>
+          ))}
+        </StackedList>
+      </div>
+
       {total !== null && (
-        <div className="mt-2 flex items-center justify-between">
-          <div className="text-sm">Showing page {page} — total {total} recipes</div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Prev</Button>
-            <Button onClick={() => setPage(p => p + 1)} disabled={recipes.length < pageSize}>Next</Button>
-            <select value={pageSize} onChange={(e) => { setPageSize(Number((e.target as HTMLSelectElement).value)); setPage(1); }} className="rounded border px-2 py-1">
-              <option value={6}>6</option>
-              <option value={12}>12</option>
-              <option value={24}>24</option>
-            </select>
+        <div className="mt-12 pt-6 border-t border-border dark:border-border-dark flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-text-secondary">
+            Showing page <strong>{page}</strong> — total <strong>{total}</strong> recipes
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Button 
+                color_name="light" 
+                size="small"
+                onClick={() => setPage(p => Math.max(1, p - 1))} 
+                disabled={page <= 1}
+              >
+                Prev
+              </Button>
+              <Button 
+                color_name="light" 
+                size="small"
+                onClick={() => setPage(p => p + 1)} 
+                disabled={recipes.length < pageSize}
+              >
+                Next
+              </Button>
+            </div>
+            
+            <div className="w-24">
+              <Select
+                value={pageSize.toString()}
+                options={[
+                  { value: '6', label: '6 / page' },
+                  { value: '12', label: '12 / page' },
+                  { value: '24', label: '24 / page' },
+                ]}
+                onChange={(e) => { setPageSize(Number(e)); setPage(1); }}
+              />
+            </div>
           </div>
         </div>
       )}
-      <StackedList onEmptyClick={addRecipe} emptyMessage="No recipes found. Click to add a new recipe.">
-        {recipes.length>0 && recipes.map((recipe: IRecipe) => (
-          <Card className="cursor-pointer" key={recipe.id} onClick={()=> navigate(`/recipes/${recipe.id}`)}>
-            <Card.Header>
-          <img src={recipe.image_url? getApiUrl(recipe.image_url): "/assets/placeholder_recipe.png"} alt={recipe.title || "Recipe image"} className="w-full h-64 object-contain mb-4 rounded-lg" /></Card.Header>
-            <Card.Body>{recipe.title} </Card.Body>
-          </Card>
-        ))}
-      </StackedList>
     </Container>
   );
 }

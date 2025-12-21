@@ -104,7 +104,7 @@ export default function SearchRecipe({ onSelect, placeholder = 'Search recipes..
       )}
 
       <div className="flex gap-2 mt-2">
-        <Button type="button" onClick={() => { setTerm(''); setSuggestions([]); setFocused(-1); }} className="px-3 py-1">Clear</Button>
+        <Button type="button" onClick={() => { setTerm(''); setSuggestions([]); setFocused(-1); }} className="px-3 py-1" variant='border'>Clear</Button>
       </div>
     </div>
   );

@@ -4,103 +4,89 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --color-primary: #E08535;
-    --color-secondary: #A8D3B6;
-    --color-accent: #FBBF24;
-    --color-background: #F9FAFB;
-    --color-text: #111827;
-    --color-danger: #F44336;
+  /* ================================================= */
+  /* Base Palette (Cookibud Core) */
+  /* ================================================= */
+  --color-cooki-orange: #E08535;   /* Primary */
+  --color-cooki-green: #A8D3B6;    /* Secondary */
+  --color-cooki-yellow: #FBBF24;   /* Accent */
+  
+  --color-dark-navy: #111827;      /* Text base */
+  --color-off-white: #F9FAFB;      /* Background base */
+  --color-pure-white: #ffffff;
+  
+  --color-red-danger: #F44336;
+  --color-red-light: #E57373;
 
-    --color-danger-dark: #E57373;
-}
+  /* ================================================= */
+  /* Light Mode */
+  /* ================================================= */
 
-/* Markdown / rendered HTML content styling */
-/* Use a .markdown wrapper for rendered content (see Meal.tsx) */
-.markdown {
-    color: var(--color-text);
-    line-height: 1.6;
-    font-size: 1rem;
-}
-.markdown h1, .markdown h2, .markdown h3, .markdown h4, .markdown h5, .markdown h6 {
-    color: var(--color-text);
-    font-weight: 600;
-    margin-top: 1.25rem;
-    margin-bottom: 0.5rem;
-}
-.markdown h1 { font-size: 1.75rem; }
-.markdown h2 { font-size: 1.5rem; }
-.markdown h3 { font-size: 1.25rem; }
-.markdown p { margin-bottom: 0.75rem; }
-.markdown ul, .markdown ol { margin-left: 1.25rem; margin-bottom: 0.75rem; }
-.markdown ul li, .markdown ol li { margin-bottom: 0.4rem; }
-.markdown blockquote {
-    border-left: 4px solid rgba(0,0,0,0.08);
-    padding-left: 1rem;
-    color: var(--color-text);
-    background: rgba(0,0,0,0.04);
-    margin: 0.75rem 0;
-    border-radius: 0.25rem;
-}
-.markdown code {
-    background: rgba(0,0,0,0.03);
-    padding: 0.12rem 0.3rem;
-    border-radius: 3px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
-    font-size: 0.95em;
-}
-.markdown pre {
-    background: rgba(0,0,0,0.06);
-    padding: 0.75rem;
-    border-radius: 0.375rem;
-    overflow: auto;
-    margin-bottom: 0.75rem;
-}
-.markdown img { max-width: 100%; height: auto; border-radius: 6px; }
-.markdown a { color: var(--color-primary); text-decoration: underline; }
-.markdown table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
-.markdown table th, .markdown table td { border: 1px solid rgba(0,0,0,0.08); padding: 0.5rem; }
-.markdown table th { background: rgba(0,0,0,0.03); }
+  /* Brand and Core Actions */
+  --color-brand: var(--color-cooki-orange);
+  --color-primary: var(--color-cooki-orange);
+  --color-primary-hover: #C66D21; /* Darkened Orange */
+  
+  --color-secondary: var(--color-cooki-green);
+  --color-secondary-hover: #8ABF9B; /* Darkened Green */
+  
+  --color-tertiary: #E5E7EB; /* Gray-200 for structural elements */
+  
+  --color-light: #FEEEDC; /* Very light orange tint for tonal buttons */
+  --color-light-hover: #FDE0C1;
+  --color-light-border: #F3D2B1;
 
-/* Keep markdown responsive in cards and modal containers */
-.markdown img, .markdown iframe {
-    max-width: 100%;
-}
+  /* Surfaces and Text */
+  --color-surface-base: var(--color-off-white);
+  --color-surface-panel: var(--color-pure-white);
+  
+  --color-text-primary: var(--color-dark-navy);
+  --color-text-secondary: #4B5563; /* Gray-600 */
+  --color-text-on-primary: var(--color-pure-white);
 
-/* Small screens — slightly smaller text */
-@media (max-width: 640px) {
-    .markdown { font-size: 0.95rem; }
-    .markdown h1 { font-size: 1.5rem; }
-    .markdown h2 { font-size: 1.2rem; }
-}
+  /* States and Structure */
+  --color-state-success: #34A853;
+  --color-state-warning: var(--color-cooki-yellow);
+  --color-state-danger: var(--color-red-danger);
+  --color-state-info: #3B82F6;
+  --color-state-focus: var(--color-cooki-orange);
+  
+  --color-text-on-danger: var(--color-pure-white);
+  --color-border: #D1D5DB; /* Gray-300 */
 
-/* Dark mode: use slightly lighter text and subtle backgrounds for code, blockquote, and tables */
-.dark .markdown {
-    color: #E6EEF7; /* light text for dark backgrounds */
-}
-.dark .markdown h1, .dark .markdown h2, .dark .markdown h3, .dark .markdown h4, .dark .markdown h5, .dark .markdown h6 {
-    color: #FFFFFF;
-}
-.dark .markdown p { color: #E6EEF7; }
-.dark .markdown a { color: var(--color-accent); text-decoration: underline; }
-.dark .markdown blockquote {
-    border-left: 4px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02);
-    color: #E6EEF7;
-}
-.dark .markdown code {
-    background: rgba(255,255,255,0.03);
-    color: #F3F4F6;
-}
-.dark .markdown pre {
-    background: rgba(255,255,255,0.02);
-    color: #E6EEF7;
-    border-radius: 0.375rem;
-}
-.dark .markdown table th, .dark .markdown table td { border-color: rgba(255,255,255,0.06); }
-.dark .markdown table th { background: rgba(255,255,255,0.02); color: #FFF; }
-.dark .markdown img { border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+  /* ================================================= */
+  /* Dark Mode */
+  /* ================================================= */
 
-/* Small screens — slight adjustments in dark mode */
-@media (max-width: 640px) {
-    .dark .markdown { font-size: 0.95rem; }
+  /* Brand and Core Actions */
+  --color-brand-dark: var(--color-cooki-orange);
+  --color-primary-dark: #F3A35C; /* Lightened Orange for better glow on dark */
+  --color-primary-hover-dark: #FFC08A;
+  
+  --color-secondary-dark: #6BA37D; /* More saturated green for dark mode */
+  --color-secondary-hover-dark: #82B894;
+  
+  --color-tertiary-dark: #374151; /* Gray-700 */
+  
+  --color-light-dark: #2D241E; /* Deep orange-tinted brown for dark buttons */
+  --color-light-hover-dark: #3D2F27;
+  --color-light-border-dark: #4D3D32;
+
+  /* Surfaces and Text */
+  --color-surface-base-dark: #0F172A; /* Deep slate */
+  --color-surface-panel-dark: #1E293B; /* Slightly lighter elevation */
+  
+  --color-text-primary-dark: #F9FAFB;
+  --color-text-secondary-dark: #9CA3AF; /* Gray-400 */
+  --color-text-on-primary-dark: #111827;
+
+  /* States and Structure */
+  --color-state-success-dark: #4ADE80;
+  --color-state-warning-dark: #FDE047;
+  --color-state-danger-dark: var(--color-red-light);
+  --color-state-info-dark: #60A5FA;
+  --color-state-focus-dark: #F3A35C;
+
+  --color-text-on-danger-dark: #111827; /* Dark text on light red for contrast */
+  --color-border-dark: #334155; /* Slate-700 */
 }

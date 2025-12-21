@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { Meal, GroceryList, GroceryItem } from '../../utils/constants/types';
+import type { Meal, GroceryList } from '../../utils/constants/types';
 import type { IRecipe } from '../Recipes/types';
 import { formatQtyUnit, normalizeQtyToBase } from '../../utils/quantities';
 
-import { Button, Card } from '@soilhat/react-components';
+import { Button, Card, Checkbox, Progress } from '@soilhat/react-components';
 import { callApi } from '../../services/api';
 
 type Props = {
@@ -12,10 +12,10 @@ type Props = {
 
 export default function GroceryPeriod({ meals }: Readonly<Props>) {
   const [periodStart, setPeriodStart] = useState<string>(() => {
-    const d = new Date(); d.setDate(1); return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+    const d = new Date(); d.setDate(1); return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
   });
   const [periodEnd, setPeriodEnd] = useState<string>(() => {
-    const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(0); return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+    const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(0); return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
   });
   const [grocery, setGrocery] = useState<Record<string, { qty?: number; unit?: string; entries: string[] }>>({});
   const [loading, setLoading] = useState(false);
@@ -124,8 +124,8 @@ export default function GroceryPeriod({ meals }: Readonly<Props>) {
       items,
     };
     try {
-        const res = await callApi<GroceryList>(`/groceries`, 'POST', undefined, payload);
-        setSavedLists(prev => [res.data, ...prev]);
+      const res = await callApi<GroceryList>(`/groceries`, 'POST', undefined, payload);
+      setSavedLists(prev => [res.data, ...prev]);
     } catch (err) {
       console.error('Failed to save grocery list', err);
     }
@@ -180,7 +180,7 @@ export default function GroceryPeriod({ meals }: Readonly<Props>) {
               return (
                 <li key={key} className="p-2 sm:p-3 rounded border dark:border-gray-700">
                   <div className="font-medium text-base sm:text-lg break-words">{name}{qtyDisplay ? ` — ${qtyDisplay}` : ''}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 space-y-1">{val.entries.map(e => <div key={e} className="break-words">{e}</div>)}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 space-y-1">{val.entries.map(e => <div key={e} className="break-words">{e}</div>)}</div>
                 </li>
               );
             })}
@@ -201,32 +201,50 @@ export default function GroceryPeriod({ meals }: Readonly<Props>) {
       <div className="mt-6">
         <h2 className="text-lg font-medium mb-3">Saved grocery lists</h2>
         <div className="space-y-3 mt-3 max-h-[30vh] sm:max-h-[40vh] overflow-auto">
-          {savedLists.map((list) => (
-            <Card key={list.id} className="p-3">
-              <div className="flex justify-between items-center">
-                <div className="font-medium">{list.title || `${list.period_start} — ${list.period_end}`}</div>
-                <div className="text-sm text-gray-600">{list.created_at ? new Date(list.created_at).toLocaleString() : ''}</div>
-              </div>
-              <ul className="mt-2 space-y-2">
-                {(list.items || []).map((it: GroceryItem) => (
-                  <li key={it.id ?? it.name} className="flex items-center gap-3">
-                    <input type="checkbox" checked={!!it.bought} onChange={(e) => { if (it.id) toggleItemStatus(list.id!, it.id, e.target.checked); }} />
-                    <div className="flex-1">
-                      {(() => {
-                        const qtyDisplay = it.qty ? ` — ${formatQtyUnit(Number(it.qty), it.unit)}` : "";
-                        return (<div className="font-medium">{it.name}{qtyDisplay}</div>);
-                      })()}
-                      <div className="text-sm text-gray-600 mt-1">{(it.entries || []).map((e: string) => <div key={e}>{e}</div>)}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-2 flex gap-2">
-                <Button onClick={() => toggleAllItemsStatus(list.id!, true)} className="px-3 py-1">Mark all as bought</Button>
-                <Button onClick={() => toggleAllItemsStatus(list.id!, false)} className="px-3 py-1">Clear all</Button>
-              </div>
-            </Card>
-          ))}
+          {savedLists.map((list) => {
+            const totalItems = list.items?.length || 0;
+            const boughtItems = list.items?.filter(it => it.bought).length || 0;
+
+            return (
+              <Card key={list.id} className="p-0 overflow-hidden mb-6 shadow-lg border-border/40">
+                <div className="bg-surface-panel dark:bg-surface-panel-dark px-4 py-3">
+                  <div className="flex flex-col gap-3">
+                    {/* Titre et Master Checkbox */}
+                    <Checkbox
+                      label={list.title || "Ma liste"}
+                      checked={totalItems > 0 && boughtItems === totalItems}
+                      indeterminate={boughtItems > 0 && boughtItems < totalItems}
+                      onChange={(e) => toggleAllItemsStatus(list.id!, e.target.checked)}
+                      containerClassName="p-0 hover:bg-transparent" // On annule le padding interne ici
+                    />
+
+                    {/* Barre de Progression Intégrée */}
+                    <Progress
+                      value={boughtItems}
+                      max={totalItems}
+                      size="sm"
+                      showValue={totalItems > 0}
+                      variant={boughtItems === totalItems ? 'success' : 'primary'}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <ul className="divide-y divide-border/30 dark:divide-border-dark/30 max-h-96 overflow-y-auto">
+                  {(list.items || []).map((it) => (
+                    <li key={it.id} className="bg-surface-base/10">
+                      <Checkbox
+                        checked={!!it.bought}
+                        label={it.name}
+                        description={it.qty ? `${it.qty} ${it.unit}` : undefined}
+                        onChange={(e) => toggleItemStatus(list.id!, it.id!, e.target.checked)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </div>

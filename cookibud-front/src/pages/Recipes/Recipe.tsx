@@ -1,4 +1,4 @@
-import { Container, Heading, Card, Form, Input, Button, Textarea, StackedList, Modal, ImageUploader } from "@soilhat/react-components";
+import { Container, Heading, Card, Form, Input, Button, Textarea, StackedList, Modal, ImageUploader, TagInput, Select } from "@soilhat/react-components";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEventHandler, type KeyboardEvent } from "react";
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from "../../routing/useAuth";
@@ -15,6 +15,7 @@ export default function Recipe() {
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
   const [userMeals, setUserMeals] = useState<Meal[]>([]);
   const [planning, setPlanning] = useState(false);
+  const [allTags, setAllTags] = useState<string[]>([]);
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -35,6 +36,10 @@ export default function Recipe() {
     callApi<string[]>(`/recipes/ingredient-names`)
       .then((res) => setIngredientNames(res.data || []))
       .catch(() => setIngredientNames([]));
+    // fetch all tags for suggestions
+    callApi<string[]>(`/recipes/tags`)
+      .then((res) => setAllTags(res.data || []))
+      .catch(() => setAllTags([]));
   }, [recipeId]);
 
   const handleInput = (e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>) => {
@@ -118,7 +123,7 @@ export default function Recipe() {
     formData.append('file', file);
 
     try {
-      const res = await callApi<{file_url:string}>(`/uploads`, 'POST', undefined, formData);
+      const res = await callApi<{ file_url: string }>(`/uploads`, 'POST', undefined, formData);
       const fileUrl = res?.data?.file_url ?? null;
       if (fileUrl) {
         setRecipe((prev) => ({ ...prev, image_url: fileUrl }));
@@ -136,7 +141,7 @@ export default function Recipe() {
     <Container>
       <Heading title={recipeId === "new" ? t("new_recipe") : `${recipe.title}`}>
         {recipeId !== "new" && !isEditing && recipe.author_id && user && user.id === recipe.author_id && (
-          <Button onClick={() => setIsEditing(true)} className="px-3 py-1">Edit</Button>
+          <Button onClick={() => setIsEditing(true)} className="px-3 py-1" variant="border">Edit</Button>
         )}
       </Heading>
 
@@ -160,13 +165,13 @@ export default function Recipe() {
               variant="outline"
               value={recipe.title || ""}
             />
-            <Input
-              name="tags"
-              type="string"
+            <TagInput
               label="Tags (comma separated)"
-              placeholder="breakfast, quick"
-              onChange={(e) => setRecipe((prev) => ({ ...prev, tags: (e.target.value || '').split(',').map(s => s.trim()).filter(Boolean) }))}
-              value={(recipe.tags || []).join(', ')}
+              placeholder="Add tags (breakfast, vegan...)"
+              tags={recipe.tags || []}
+              suggestions={allTags}
+              onChange={(newTags) => setRecipe(prev => ({ ...prev, tags: newTags }))}
+              className="mb-2"
             />
             <div className="label">Ingredients</div>
             <StackedList emptyMessage="No ingredients added yet.">
@@ -184,7 +189,7 @@ export default function Recipe() {
               onChange={handleInput}
               markdown
             />
-            {(recipeId && recipeId != "new") && <Button type="button" className="bg-red-500" onClick={handleDelete}>{t("delete_recipe")}</Button>}
+            {(recipeId && recipeId != "new") && <Button type="button" color_name="danger" onClick={handleDelete}>{t("delete_recipe")}</Button>}
             <Button type="submit">{t("save_recipe")}</Button>
           </Form>
         </Card>
@@ -218,7 +223,7 @@ export default function Recipe() {
                     <div className="font-medium">{r.username || 'User'}</div>
                     <div className="text-sm text-gray-600">{new Date(r.created_at || '').toLocaleString()}</div>
                   </div>
-                  <div className="mt-1">{Array.from({length: r.rating}).map(() => '★').join('')} {r.rating}/5</div>
+                  <div className="mt-1">{Array.from({ length: r.rating }).map(() => '★').join('')} {r.rating}/5</div>
                   {r.comment && <div className="mt-2">{r.comment}</div>}
                 </div>
               ))}
@@ -232,21 +237,21 @@ export default function Recipe() {
                 <div className="text-sm text-gray-600">Please log in to plan this recipe.</div>
               )}
             </div>
-            <PlanModal open={planning} onClose={() => setPlanning(false)} recipeId={recipeId!} recipeTitle={recipe.title || ''} onPlanned={() => { callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])).catch(() => {}); setPlanning(false); }} />
+            <PlanModal open={planning} onClose={() => setPlanning(false)} recipeId={recipeId!} recipeTitle={recipe.title || ''} onPlanned={() => { callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])).catch(() => { }); setPlanning(false); }} />
 
             <div className="mt-4">
               <h4 className="font-medium">Planned in</h4>
-              {userMeals?.filter(m => m.items?.some((it:MealRecipe) => it.recipe_id === recipeId)).map(m => (
+              {userMeals?.filter(m => m.items?.some((it: MealRecipe) => it.recipe_id === recipeId)).map(m => (
                 <div key={m.id} className="mt-2 border rounded p-2 flex items-center justify-between">
                   <div>{new Date(m.date).toLocaleDateString()}</div>
                   <div className="flex gap-2">
-                    <Button 
+                    <Button
                       color_name="danger"
                       onClick={() => {
-                      callApi<void>(`/meals/${m.id}/items/${recipeId}`, 'DELETE')
-                        .then(() => callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])).catch(() => {}))
-                        .catch(console.error);
-                    }}>Remove</Button>
+                        callApi<void>(`/meals/${m.id}/items/${recipeId}`, 'DELETE')
+                          .then(() => callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])).catch(() => { }))
+                          .catch(console.error);
+                      }}>Remove</Button>
                   </div>
                 </div>
               ))}
@@ -331,6 +336,8 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
     setOpen(false);
   }
 
+  const unitOptions = [{value: 'g', label: 'g'}, {value: 'kg', label: 'kg'}, {value: 'ml', label: 'ml'}, {value: 'l', label: 'l'}, {value: 'tbsp', label: 'tbsp'}, {value: 'tsp', label: 'tsp'}, {value: 'cup', label: 'cup'}, {value: 'pc', label: 'pc'}, {value: '', label: '(none)'}];
+
   return (
     <div>
       {ingredient?.name ? <Button type="button" onClick={() => setOpen(true)}>{ingredient.name} {ingredient.quantity ? `(${formatQtyUnit(ingredient.quantity, ingredient.unit)})` : ""}</Button>
@@ -369,25 +376,13 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
           name="quantity"
           onChange={handleInput}
         />
-        <div className="mt-2">
-          <label htmlFor={`ing-unit-${index ?? '__new'}`} className="block text-sm">Unit</label>
-          <select
-            id={`ing-unit-${index ?? '__new'}`}
-            value={ingredient?.unit || ''}
-            name="unit"
-            onChange={(e) => setIngredient((prev) => ({ ...prev, unit: e.target.value }))}
-            className="mt-1 w-full rounded border px-2 py-1"
-          >
-            <option value="g">g</option>
-            <option value="kg">kg</option>
-            <option value="ml">ml</option>
-            <option value="l">l</option>
-            <option value="tbsp">tbsp</option>
-            <option value="tsp">tsp</option>
-            <option value="cup">cup</option>
-            <option value="pc">pc</option>
-            <option value="">(none)</option>
-          </select>
+        <div className="my-2 mb-4">
+          <Select
+            label="Unit"
+            options={unitOptions}
+            value={unitOptions.find(u => u.label === (ingredient?.unit || ''))?.value || ''}
+            onChange={(e) => setIngredient((prev) => ({ ...prev, unit: e.toString() }))}
+          />
         </div>
         {ingredient?.id && <Button type="button" color_name="danger" onClick={handleDelete}>{t("delete_ingredient")}</Button>}
         <Button type="button" onClick={handleSubmit}>{t("save_ingredient")}</Button>
@@ -423,9 +418,12 @@ const ReviewForm = ({ recipeId, onAdded }: { recipeId: string, onAdded: (rev: IR
     <div className="mt-4">
       <div className="flex gap-2 items-center">
         <label className="text-sm">Rating</label>
-        <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="rounded border px-2 py-1">
-          {[5,4,3,2,1].map(v => <option key={v} value={v}>{v} star{v>1?'s':''}</option>)}
-        </select>
+        <Select
+          label="Rating"
+          options={[5,4,3,2,1].map(v => ({ value: v, label: `${v} star${v > 1 ? 's' : ''}` }) )}
+          value={rating}
+          onChange={(e) => setRating(Number(e))}
+        />
       </div>
       <div className="mt-2">
         <label className="block text-sm">Comment</label>
@@ -439,7 +437,7 @@ const ReviewForm = ({ recipeId, onAdded }: { recipeId: string, onAdded: (rev: IR
 }
 
 const PlanModal = ({ open, onClose, recipeId, recipeTitle, onPlanned }: { open: boolean, onClose: () => void, recipeId: string, recipeTitle: string, onPlanned: (meal: Meal) => void }) => {
-  const [date, setDate] = useState<string>(new Date().toISOString().slice(0,10));
+  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [servings, setServings] = useState<number>(1);
   const [loading, setLoading] = useState(false);
 
