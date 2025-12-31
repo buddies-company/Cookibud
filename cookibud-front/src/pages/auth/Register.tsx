@@ -36,7 +36,7 @@ export default function Register() {
 
     return (
         <>
-            <h2 className="text-primary dark:text-yellow-300 text-2xl font-bold text-center mb-6">{t("greetings")}</h2>
+            <h2 className="text-primary dark:text-primary-dark text-2xl font-bold text-center mb-6">{t("greetings")}</h2>
             <Form method="post" id="loginForm" onSubmit={handleSubmitEvent}>
                 <Input
                     name="username"
@@ -74,7 +74,7 @@ export default function Register() {
                 </Button>
             </Form>
             <p className="text-center text-sm">
-                <Link className="text-accent dark:text-accent/90 hover:underline" to={`/auth/login${location.search}`}>{t("login")}</Link>
+                <Link className="text-primary dark:text-primary-dark hover:underline" to={`/auth/login${location.search}`}>{t("login")}</Link>
             </p>
         </>
     )

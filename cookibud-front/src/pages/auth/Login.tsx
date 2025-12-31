@@ -33,7 +33,7 @@ export default function Login() {
 
     return (
         <>
-            <h2 className="text-primary dark:text-yellow-300 text-2xl font-bold text-center mb-6">{t("greetings")}</h2>
+            <h2 className="text-primary dark:text-primary-dark text-2xl font-bold text-center mb-6">{t("greetings")}</h2>
             <Form method="post" id="loginForm" onSubmit={handleSubmitEvent}>
                 <Input
                     name="username"
@@ -64,7 +64,7 @@ export default function Login() {
                 </Button>
             </Form>
             <p className="text-center text-sm">
-                <Link className="text-purple-600 dark:text-purple-400 hover:underline" to="/auth/register">{t("create_account")}</Link>
+                <Link className="text-primary dark:text-primary-dark hover:underline" to="/auth/register">{t("create_account")}</Link>
             </p>
         </>
     )

@@ -3,14 +3,12 @@ import type { Meal, GroceryList } from '../../utils/constants/types';
 import type { IRecipe } from '../Recipes/types';
 import { formatQtyUnit, normalizeQtyToBase } from '../../utils/quantities';
 
-import { Button, Card, Checkbox, Progress } from '@soilhat/react-components';
+import { Button, Card, Checkbox, Heading, Input, Progress } from '@soilhat/react-components';
 import { callApi } from '../../services/api';
 
-type Props = {
-  meals: Meal[];
-};
 
-export default function GroceryPeriod({ meals }: Readonly<Props>) {
+export default function GroceryPeriod() {
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [periodStart, setPeriodStart] = useState<string>(() => {
     const d = new Date(); d.setDate(1); return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
   });
@@ -20,6 +18,11 @@ export default function GroceryPeriod({ meals }: Readonly<Props>) {
   const [grocery, setGrocery] = useState<Record<string, { qty?: number; unit?: string; entries: string[] }>>({});
   const [loading, setLoading] = useState(false);
   const [savedLists, setSavedLists] = useState<GroceryList[]>([]);
+
+  useEffect(() => {
+    // load meals and recipes
+    callApi<Meal[]>("/meals").then(res => setMeals(res.data || [])).catch(() => { });
+  }, []);
 
   async function fetchRecipesByIds(ids: string[]): Promise<Record<string, IRecipe | undefined>> {
     const out: Record<string, IRecipe | undefined> = {};
@@ -152,100 +155,122 @@ export default function GroceryPeriod({ meals }: Readonly<Props>) {
   }
 
   return (
-    <div className="p-2 sm:p-4">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6">
+      <Heading title="Grocery Planning" meta={[
+        { value: 'Generate new lists or manage your shopping history.', key: 'meta' },]}></Heading>
 
-      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-        <div className="w-full sm:w-auto">
-          <label htmlFor="gp-start" className="block text-sm">From</label>
-          <input id="gp-start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="w-full sm:w-auto rounded border px-2 py-1 mt-1" />
-        </div>
-        <div className="w-full sm:w-auto">
-          <label htmlFor="gp-end" className="block text-sm">To</label>
-          <input id="gp-end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="w-full sm:w-auto rounded border px-2 py-1 mt-1" />
-        </div>
-        <div className="w-full sm:w-auto">
-          <Button onClick={generate} className="w-full sm:w-auto px-3 py-1">Generate</Button>
-        </div>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-      <div className="mt-4">
-        {loading ? <div>Generating…</div> : (
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Object.entries(grocery).map(([key, val]) => {
-              const [name, unit] = key.split('::');
-              let qtyDisplay: string | undefined = undefined;
-              if (val.qty !== undefined) {
-                qtyDisplay = formatQtyUnit(val.qty, unit);
-              }
-              return (
-                <li key={key} className="p-2 sm:p-3 rounded border dark:border-gray-700">
-                  <div className="font-medium text-base sm:text-lg break-words">{name}{qtyDisplay ? ` — ${qtyDisplay}` : ''}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 space-y-1">{val.entries.map(e => <div key={e} className="break-words">{e}</div>)}</div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {(!loading && Object.keys(grocery).length === 0) && (
-          <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">No ingredients found for the selected period.</div>
-        )}
-      </div>
-      <div className="mt-4">
-        {Object.keys(grocery).length > 0 && (
-          <div className="flex gap-2 mt-3">
-            <Button onClick={saveGrocery} className="px-3 py-1">Save grocery list</Button>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-lg font-medium mb-3">Saved grocery lists</h2>
-        <div className="space-y-3 mt-3 max-h-[30vh] sm:max-h-[40vh] overflow-auto">
-          {savedLists.map((list) => {
-            const totalItems = list.items?.length || 0;
-            const boughtItems = list.items?.filter(it => it.bought).length || 0;
-
-            return (
-              <Card key={list.id} className="p-0 overflow-hidden mb-6 shadow-lg border-border/40">
-                <div className="bg-surface-panel dark:bg-surface-panel-dark px-4 py-3">
-                  <div className="flex flex-col gap-3">
-                    {/* Titre et Master Checkbox */}
-                    <Checkbox
-                      label={list.title || "Ma liste"}
-                      checked={totalItems > 0 && boughtItems === totalItems}
-                      indeterminate={boughtItems > 0 && boughtItems < totalItems}
-                      onChange={(e) => toggleAllItemsStatus(list.id!, e.target.checked)}
-                      containerClassName="p-0 hover:bg-transparent" // On annule le padding interne ici
-                    />
-
-                    {/* Barre de Progression Intégrée */}
-                    <Progress
-                      value={boughtItems}
-                      max={totalItems}
-                      size="sm"
-                      showValue={totalItems > 0}
-                      variant={boughtItems === totalItems ? 'success' : 'primary'}
-                      className="mt-1"
-                    />
-                  </div>
+        {/* LEFT COLUMN: GENERATOR (Sticky on Desktop) */}
+        <aside className="lg:col-span-4 lg:sticky lg:top-6 space-y-6">
+          <Card>
+            <h2 className="text-lg font-semibold mb-4">Create New List</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Date Range</label>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    type="date"
+                    value={periodStart}
+                    onChange={(e) => setPeriodStart(e.target.value)}
+                  />
+                  <Input
+                    type="date"
+                    value={periodEnd}
+                    onChange={(e) => setPeriodEnd(e.target.value)}
+                  />
                 </div>
+              </div>
+              <Button onClick={generate} className="w-full justify-center py-2" loading={loading}>
+                {loading ? 'Processing...' : 'Generate Ingredients'}
+              </Button>
+            </div>
+          </Card>
 
-                <ul className="divide-y divide-border/30 dark:divide-border-dark/30 max-h-96 overflow-y-auto">
-                  {(list.items || []).map((it) => (
-                    <li key={it.id} className="bg-surface-base/10">
-                      <Checkbox
-                        checked={!!it.bought}
-                        label={it.name}
-                        description={it.qty ? `${it.qty} ${it.unit}` : undefined}
-                        onChange={(e) => toggleItemStatus(list.id!, it.id!, e.target.checked)}
+          {/* PREVIEW AREA: Only shows if a list was just generated but not saved yet */}
+          {Object.keys(grocery).length > 0 && (
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm">Previewing {Object.keys(grocery).length} items</h3>
+                <Button onClick={saveGrocery} size="small">Save This List</Button>
+              </div>
+              <ul className="text-xs space-y-2 max-h-60 overflow-auto p-2 border rounded bg-surface-muted/30">
+                {Object.entries(grocery).map(([key, val]) => {
+                  const [name, unit] = key.split('::');
+                  let qtyDisplay: string | undefined = undefined;
+                  if (val.qty !== undefined) {
+                    qtyDisplay = formatQtyUnit(val.qty, unit);
+                  }
+                  return (
+                    <li key={key} className="truncate">• {name}{qtyDisplay ? ` — ${qtyDisplay}` : ''}</li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </aside>
+
+        {/* RIGHT COLUMN: SAVED LISTS FEED */}
+        <main className="lg:col-span-8 space-y-6">
+          <div className="flex items-center justify-between border-b pb-2">
+            <h2 className="text-xl font-semibold">Saved Grocery Lists</h2>
+            <span className="text-sm bg-primary dark:bg-primary-dark text-text-on-primary dark:text-text-on-primary-dark px-2 py-1 rounded-full">{savedLists.length} Lists</span>
+          </div>
+
+          {savedLists.length === 0 ? (
+            <div className="text-center py-20 border-2 border-dashed rounded-xl opacity-50">
+              <p>No saved lists found. Generate your first one on the left!</p>
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {savedLists.map((list) => {
+                const totalItems = list.items?.length || 0;
+                const boughtItems = list.items?.filter(it => it.bought).length || 0;
+                const isComplete = totalItems > 0 && boughtItems === totalItems;
+
+                return (
+                  <Card key={list.id} className={`overflow-hidden transition-all ${isComplete ? 'opacity-75' : 'shadow-md'}`}>
+                    {/* List Header */}
+                    <div className="p-4 border-b bg-surface-panel/50 dark:bg-surface-panel-dark/50 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <Checkbox
+                          label={<span className="font-bold text-lg">{list.title}</span>}
+                          checked={isComplete}
+                          indeterminate={boughtItems > 0 && boughtItems < totalItems}
+                          onChange={(e) => toggleAllItemsStatus(list.id!, e.target.checked)}
+                        />
+                        <div className="text-xs text-text-secondary dark:text-text-secondary font-mono">
+                          {list.period_start} — {list.period_end}
+                        </div>
+                      </div>
+
+                      <Progress
+                        value={boughtItems}
+                        max={totalItems}
+                        size="md"
+                        variant={isComplete ? 'success' : 'primary'}
                       />
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            );
-          })}
-        </div>
+                    </div>
+
+                    {/* List Items Grid */}
+                    <ul className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:gap-x-4 p-4 bg-background">
+                      {(list.items || []).map((it) => (
+                        <li key={it.id} className="py-2 flex items-center border-b border-border/20 dark:border-border-dark/20">
+                          <Checkbox
+                            checked={!!it.bought}
+                            label={<span className={it.bought ? 'line-through opacity-50' : ''}>{it.name}</span>}
+                            description={it.qty ? `${it.qty} ${it.unit}` : undefined}
+                            onChange={(e) => toggleItemStatus(list.id!, it.id!, e.target.checked)}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

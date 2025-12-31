@@ -90,3 +90,12 @@
   --color-text-on-danger-dark: #111827; /* Dark text on light red for contrast */
   --color-border-dark: #334155; /* Slate-700 */
 }
+body {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-base);
+  transition: background-color 0.3s ease; /* Smooth toggle */
+}
+.dark body {
+  color: var(--color-text-primary-dark);
+  background-color: var(--color-surface-base-dark);
+}

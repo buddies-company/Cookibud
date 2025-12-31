@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Container, Heading, Card, Button, Modal, Calendar } from "@soilhat/react-components";
 import SearchRecipe from './SearchRecipe';
-import GroceryPeriod from './GroceryPeriod';
 import { callApi } from "../../services/api";
 import { useNavigate } from 'react-router-dom';
 import type { Meal, MealRecipe } from '../../utils/constants/types';
@@ -22,7 +21,6 @@ export default function MealsPage() {
   const [selectedServings, setSelectedServings] = useState<number>(1);
   const [plannedRecipes, setPlannedRecipes] = useState<MealRecipe[]>([]);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
-  const [groceryModalOpen, setGroceryModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -108,7 +106,7 @@ export default function MealsPage() {
     <Container>
       <Heading title={`Meals calendar`}>
         <div>
-          <Button onClick={() => setGroceryModalOpen(true)} className="px-3 py-1">Grocery list</Button>
+          <Button onClick={() => navigate("/groceries")} className="px-3 py-1">Grocery list</Button>
         </div>
       </Heading>
 
@@ -158,11 +156,6 @@ export default function MealsPage() {
               <Button type="submit" className="px-4 py-1">Save</Button>
             </div>
           </form>
-      </Modal>
-      <Modal open={groceryModalOpen} onClose={() => setGroceryModalOpen(false)}>
-        <div className="max-w-2xl mx-auto p-4 max-h-[calc(100vh-4rem)] overflow-auto z-50">
-          <GroceryPeriod meals={meals} />
-        </div>
       </Modal>
     </Container>
   )

@@ -9,6 +9,7 @@ import Recipes from "./pages/Recipes";
 import Recipe from "./pages/Recipes/Recipe";
 import Meals from "./pages/Meals";
 import Meal from "./pages/Meals/Meal";
+import GroceryPeriod from "./pages/Meals/GroceryPeriod";
 
 const App = () => {
   return (
@@ -27,6 +28,7 @@ const App = () => {
                 <Route path="/recipes/:recipeId" element={<Recipe />} />
                 <Route path="/meals" element={<Meals />} />
                 <Route path="/meals/:mealId" element={<Meal />} />
+                <Route path="/groceries" element={<GroceryPeriod />} />
               </Route>
             </Route>
           </Route>
