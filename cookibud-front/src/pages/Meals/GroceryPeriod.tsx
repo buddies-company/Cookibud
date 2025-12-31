@@ -181,7 +181,7 @@ export default function GroceryPeriod() {
                   />
                 </div>
               </div>
-              <Button onClick={generate} className="w-full justify-center py-2" loading={loading}>
+              <Button onClick={generate} className="w-full justify-center py-2" >
                 {loading ? 'Processing...' : 'Generate Ingredients'}
               </Button>
             </div>
