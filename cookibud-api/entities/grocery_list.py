@@ -1,6 +1,6 @@
 """GroceryList entity definitions"""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -24,8 +24,8 @@ class GroceryList(BaseModel):
     user_id: Optional[str] = None
     created_at: Optional[datetime] = None
     title: Optional[str] = None
-    period_start: Optional[str] = None
-    period_end: Optional[str] = None
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
     items: List[GroceryItem] = []
 
     model_config = ConfigDict(

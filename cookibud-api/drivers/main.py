@@ -2,6 +2,7 @@
 
 import logging
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,10 +12,22 @@ from starlette.concurrency import iterate_in_threadpool
 from drivers.config import settings
 from drivers.dependencies import get_token_header
 from drivers.routers import auth, groceries, meals, recipes, uploads
+from migrations import migrate_date_fields
 
 logger = logging.getLogger("uvicorn.trace")
 
-app = FastAPI(title="Cookibud API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        await migrate_date_fields()
+    except Exception as e:
+        print(f"Migration error: {e}")
+
+    yield
+
+
+app = FastAPI(title="Cookibud API", lifespan=lifespan)
 
 origins = [
     "http://localhost:5173",

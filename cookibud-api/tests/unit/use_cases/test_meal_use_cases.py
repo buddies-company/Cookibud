@@ -7,14 +7,14 @@ from adapters.ports.meal_repository import MealRepository
 from entities.meal import Meal, RecipeEntry
 from use_cases.exceptions import AccessDeniedError
 from use_cases.meals import (
+    AddRecipeToMealUseCase,
     CreateMealUseCase,
     DeleteMealUseCase,
+    PlanRecipeUseCase,
     ReadMealByIdUseCase,
     ReadUserMealsUseCase,
-    UpdateMealUseCase,
-    AddRecipeToMealUseCase,
     RemoveRecipeFromMealUseCase,
-    PlanRecipeUseCase,
+    UpdateMealUseCase,
 )
 
 
@@ -189,7 +189,12 @@ class TestAddRemovePlanRecipeUseCases(unittest.TestCase):
     def test_remove_recipe_from_meal(self):
         meal_id = "meal1"
         user_id = "user123"
-        existing_meal = Meal(id=meal_id, date="2024-01-01", items=[RecipeEntry(recipe_id="r1", servings=2)], user_id=user_id)
+        existing_meal = Meal(
+            id=meal_id,
+            date="2024-01-01",
+            items=[RecipeEntry(recipe_id="r1", servings=2)],
+            user_id=user_id,
+        )
         self.meal_repository.read.return_value = [existing_meal]
         self.meal_repository.update.return_value = existing_meal
 
@@ -205,7 +210,9 @@ class TestAddRemovePlanRecipeUseCases(unittest.TestCase):
 
         # No existing meal -> create
         self.meal_repository.read.return_value = []
-        created = Meal(id="mnew", date=date, items=[RecipeEntry(**entry)], user_id=user_id)
+        created = Meal(
+            id="mnew", date=date, items=[RecipeEntry(**entry)], user_id=user_id
+        )
         self.meal_repository.create.return_value = created
 
         res = self.plan_use_case(date, entry, user_id)

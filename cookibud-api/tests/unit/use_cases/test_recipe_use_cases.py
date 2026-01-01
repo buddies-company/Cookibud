@@ -7,13 +7,13 @@ from adapters.ports.recipe_repository import RecipeRepository
 from entities.recipe import Recipe
 from use_cases.exceptions import AccessDeniedError
 from use_cases.recipes import (
+    AddReviewUseCase,
     CreateRecipeUseCase,
     DeleteRecipeUseCase,
     GetIngredientNamesUseCase,
     ReadRecipeByIdUseCase,
     ReadRecipesUseCase,
     UpdateRecipeUseCase,
-    AddReviewUseCase,
 )
 
 
@@ -48,18 +48,22 @@ class TestReadRecipes(unittest.TestCase):
         recipes = self.use_case(search=search_term)
 
         self.recipe_repository.read.assert_called_once_with(
-            **{"$or": [
-                {"title": {"$regex": search_term, "$options": "i"}},
-                {"description": {"$regex": search_term, "$options": "i"}},
-                {"ingredients.name": {"$regex": search_term, "$options": "i"}},
-            ]}
+            **{
+                "$or": [
+                    {"title": {"$regex": search_term, "$options": "i"}},
+                    {"description": {"$regex": search_term, "$options": "i"}},
+                    {"ingredients.name": {"$regex": search_term, "$options": "i"}},
+                ]
+            }
         )
         self.assertEqual(recipes, expected_recipes)
 
     def test_read_recipes_with_tags(self):
         """Test reading recipes filtered by tags"""
         tags = ["breakfast", "quick"]
-        expected_recipes = [Recipe(title="Pancakes", ingredients=[], description="Good", tags=tags)]
+        expected_recipes = [
+            Recipe(title="Pancakes", ingredients=[], description="Good", tags=tags)
+        ]
         self.recipe_repository.read.return_value = expected_recipes
 
         res = self.use_case(search=None, tags=tags)
@@ -70,23 +74,31 @@ class TestReadRecipes(unittest.TestCase):
     def test_read_recipes_by_ingredient(self):
         """Test reading recipes filtered by ingredient name"""
         ingredient = "egg"
-        expected_recipes = [Recipe(title="Omelette", ingredients=[{"name": "eggs"}], description="...")]
+        expected_recipes = [
+            Recipe(title="Omelette", ingredients=[{"name": "eggs"}], description="...")
+        ]
         self.recipe_repository.read.return_value = expected_recipes
 
         res = self.use_case(search=None, tags=None, ingredient=ingredient)
 
-        self.recipe_repository.read.assert_called_once_with(**{"ingredients.name": {"$regex": ingredient, "$options": "i"}})
+        self.recipe_repository.read.assert_called_once_with(
+            **{"ingredients.name": {"$regex": ingredient, "$options": "i"}}
+        )
         self.assertEqual(res, expected_recipes)
 
     def test_read_recipes_with_pagination(self):
         """Test paginated read returns items and metadata"""
         # prepare 50 recipes as total
-        total = [Recipe(title=f"R{i}", ingredients=[], description="x") for i in range(50)]
+        total = [
+            Recipe(title=f"R{i}", ingredients=[], description="x") for i in range(50)
+        ]
         page_items = total[10:20]
         # when called first time for total, return total; second time for paged, return page_items
         self.recipe_repository.read.side_effect = [total, page_items]
 
-        res = self.use_case(search=None, tags=None, ingredient=None, page=2, page_size=10)
+        res = self.use_case(
+            search=None, tags=None, ingredient=None, page=2, page_size=10
+        )
 
         self.assertIsInstance(res, dict)
         self.assertEqual(res["total"], 50)
@@ -198,7 +210,7 @@ class TestUpdateRecipe(unittest.TestCase):
         self.recipe_repository.read.assert_called_once_with(id=recipe_id)
         self.recipe_repository.update.assert_called_once_with(
             recipe_id,
-            **updated_data.model_dump(exclude_unset=True, exclude={"author_id", "id"})
+            **updated_data.model_dump(exclude_unset=True, exclude={"author_id", "id"}),
         )
 
         self.assertEqual(updated_recipe.title, updated_data.title)

@@ -10,14 +10,14 @@ from entities.meal import Meal
 from entities.user import TokenData
 from use_cases.exceptions import AccessDeniedError
 from use_cases.meals import (
+    AddRecipeToMealUseCase,
     CreateMealUseCase,
     DeleteMealUseCase,
+    PlanRecipeUseCase,
     ReadMealByIdUseCase,
     ReadUserMealsUseCase,
-    UpdateMealUseCase,
-    AddRecipeToMealUseCase,
     RemoveRecipeFromMealUseCase,
-    PlanRecipeUseCase,
+    UpdateMealUseCase,
 )
 
 router = APIRouter()
@@ -85,7 +85,9 @@ def delete_meal(item_id: str, usecases_and_user: tuple = Depends(get_meal_usecas
 
 
 @router.post("/{meal_id}/items", status_code=201)
-def add_meal_item(meal_id: str, item: dict, usecases_and_user: tuple = Depends(get_meal_usecases)):
+def add_meal_item(
+    meal_id: str, item: dict, usecases_and_user: tuple = Depends(get_meal_usecases)
+):
     """Add a recipe entry to an existing meal (ownership verified)"""
     usecases, user_id = usecases_and_user
     try:
@@ -95,7 +97,9 @@ def add_meal_item(meal_id: str, item: dict, usecases_and_user: tuple = Depends(g
 
 
 @router.delete("/{meal_id}/items/{recipe_id}", status_code=204)
-def remove_meal_item(meal_id: str, recipe_id: str, usecases_and_user: tuple = Depends(get_meal_usecases)):
+def remove_meal_item(
+    meal_id: str, recipe_id: str, usecases_and_user: tuple = Depends(get_meal_usecases)
+):
     """Remove a recipe entry from a meal"""
     usecases, user_id = usecases_and_user
     try:
@@ -111,7 +115,9 @@ def plan_recipe(req: dict, usecases_and_user: tuple = Depends(get_meal_usecases)
     date = req.get("date")
     entry = req.get("entry")
     if not date or not entry:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="date and entry required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="date and entry required"
+        )
     try:
         return usecases["plan_recipe"](date, entry, user_id)
     except AccessDeniedError as e:

@@ -98,7 +98,9 @@ class AddRecipeToMealUseCase:
             raise ValueError("Invalid recipe entry")
         items.append(recipe_entry_obj)
         meal.items = items
-        return self.meal_repository.update(meal_id, **meal.model_dump(exclude_unset=True, exclude={"id", "user_id"}))
+        return self.meal_repository.update(
+            meal_id, **meal.model_dump(exclude_unset=True, exclude={"id", "user_id"})
+        )
 
 
 @dataclass
@@ -114,7 +116,7 @@ class RemoveRecipeFromMealUseCase:
         meal = existing[0]
         # normalize items into RecipeEntry objects for consistent handling
         items_objs = []
-        for it in (meal.items or []):
+        for it in meal.items or []:
             if isinstance(it, dict):
                 items_objs.append(RecipeEntry(**it))
             elif isinstance(it, RecipeEntry):
@@ -124,7 +126,9 @@ class RemoveRecipeFromMealUseCase:
                 items_objs.append(it)
         items = [it for it in items_objs if it.recipe_id != recipe_id]
         meal.items = items
-        return self.meal_repository.update(meal_id, **meal.model_dump(exclude_unset=True, exclude={"id", "user_id"}))
+        return self.meal_repository.update(
+            meal_id, **meal.model_dump(exclude_unset=True, exclude={"id", "user_id"})
+        )
 
 
 @dataclass
@@ -148,7 +152,10 @@ class PlanRecipeUseCase:
                 raise ValueError("Invalid recipe entry")
             items.append(entry_obj)
             meal.items = items
-            return self.meal_repository.update(meal.id, **meal.model_dump(exclude_unset=True, exclude={"id", "user_id"}))
+            return self.meal_repository.update(
+                meal.id,
+                **meal.model_dump(exclude_unset=True, exclude={"id", "user_id"})
+            )
         # create a new meal for this date
         # convert entry to RecipeEntry model
         if isinstance(recipe_entry, dict):

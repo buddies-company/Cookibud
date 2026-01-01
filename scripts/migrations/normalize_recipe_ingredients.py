@@ -8,9 +8,9 @@ values in grams/ml (or keep as count for piece-based items) and set ingredient.u
 """
 
 from adapters.mongodb.db import Collection
+from bson import ObjectId
 from drivers.config import settings
 from use_cases.units import normalize_unit_and_qty
-from bson import ObjectId
 
 
 def migrate(uri: str):

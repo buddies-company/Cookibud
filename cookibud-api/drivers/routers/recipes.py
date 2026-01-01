@@ -14,9 +14,9 @@ from use_cases.recipes import (
     CreateRecipeUseCase,
     DeleteRecipeUseCase,
     GetIngredientNamesUseCase,
+    GetTagsUseCase,
     ReadRecipeByIdUseCase,
     ReadRecipesUseCase,
-    GetTagsUseCase,
     UpdateRecipeUseCase,
 )
 
@@ -51,7 +51,9 @@ def read_recipes(
 ):
     """Retrieve recipes. Optional filters: `search`, `tags`, `ingredient`. Optional pagination: `page`, `page_size`. Optional sorting: `sort_by`, `sort_dir` (asc|desc)."""
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
-    return usecases["read_recipes"](search, tag_list, ingredient, page, page_size, sort_by, sort_dir)
+    return usecases["read_recipes"](
+        search, tag_list, ingredient, page, page_size, sort_by, sort_dir
+    )
 
 
 @router.get("/tags")

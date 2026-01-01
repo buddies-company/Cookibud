@@ -11,13 +11,23 @@ from use_cases.units import normalize_unit_and_qty
 
 NOT_FOUND = "Recipe not found"
 
+
 @dataclass
 class ReadRecipesUseCase:
     """Retrieve recipes (public read - anyone can see)"""
 
     recipe_repository: RecipeRepository
 
-    def __call__(self, search: str = None, tags: list[str] | None = None, ingredient: str | None = None, page: int | None = None, page_size: int | None = None, sort_by: str | None = None, sort_dir: str = "asc") -> list[Recipe] | dict:
+    def __call__(
+        self,
+        search: str = None,
+        tags: list[str] | None = None,
+        ingredient: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        sort_by: str | None = None,
+        sort_dir: str = "asc",
+    ) -> list[Recipe] | dict:
         """Get recipes with optional search, tag, or ingredient filters.
 
         - search: performs case-insensitive substring match against title, description or ingredient name
@@ -51,13 +61,26 @@ class ReadRecipesUseCase:
             # compute total count by reading without pagination
             total_items = len(self.recipe_repository.read(**query))
 
-            items = self.recipe_repository.read(**{**query, "_skip": skip, "_limit": page_size, "_sort": sort_param} if sort_param else {**query, "_skip": skip, "_limit": page_size})
-            return {"items": items, "total": total_items, "page": page, "page_size": page_size}
+            items = self.recipe_repository.read(
+                **(
+                    {**query, "_skip": skip, "_limit": page_size, "_sort": sort_param}
+                    if sort_param
+                    else {**query, "_skip": skip, "_limit": page_size}
+                )
+            )
+            return {
+                "items": items,
+                "total": total_items,
+                "page": page,
+                "page_size": page_size,
+            }
 
         # no pagination requested: simple read (with optional sort)
         if sort_by:
             dir_flag = 1 if sort_dir == "asc" else -1
-            return self.recipe_repository.read(**{**query, "_sort": [(sort_by, dir_flag)]})
+            return self.recipe_repository.read(
+                **{**query, "_sort": [(sort_by, dir_flag)]}
+            )
         return self.recipe_repository.read(**query)
 
 
@@ -191,6 +214,7 @@ class GetIngredientNamesUseCase:
 @dataclass
 class AddReviewUseCase:
     """Add a review to a recipe"""
+
     recipe_repository: RecipeRepository
 
     def __call__(

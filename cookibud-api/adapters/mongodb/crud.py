@@ -35,6 +35,7 @@ class CRUD(ICRUD):
             skip = filters.pop("_skip")
         if "_sort" in filters:
             sort = filters.pop("_sort")
+
         with Collection(self.uri, self.collection) as collection:
             documents = collection.find(filters)
             # apply sort/skip/limit if provided

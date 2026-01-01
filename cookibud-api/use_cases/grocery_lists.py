@@ -19,7 +19,9 @@ class ReadUserGroceryListsUseCase:
     grocery_repository: GroceryListRepository
 
     def __call__(self, user_id: str) -> list[GroceryList]:
-        return self.grocery_repository.read(user_id=user_id)
+        return self.grocery_repository.read(
+            user_id=user_id, _sort=[("period_end", -1)], period_end={"$type": 9}
+        )
 
 
 @dataclass
