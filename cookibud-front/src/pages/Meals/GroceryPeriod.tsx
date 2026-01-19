@@ -141,7 +141,7 @@ export default function GroceryPeriod() {
 
   async function saveGrocery() {
     const items = Object.entries(grocery).map(([key, val]) => {
-      const [name, unit] = key.split('::');
+      const [name, _] = key.split('::');
       return { name, qty: val.qty, unit: val.unit || "", entries: val.entries, bought: false };
     });
     const payload = {
