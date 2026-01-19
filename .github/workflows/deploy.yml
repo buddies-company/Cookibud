@@ -13,9 +13,22 @@ jobs:
           path: 'current_app' 
 
       - name: Deploy
-        working-directory: ${{ vars.DEPLOY_PATH }}
         run: |
-          git pull origin main
+          # Create directory if it doesn't exist
+          mkdir -p ${{ vars.DEPLOY_PATH }}
+          cd ${{ vars.DEPLOY_PATH }}
+          
+          # Initialize git if empty, otherwise pull
+          if [ ! -d ".git" ]; then
+            git clone git@github.com:${{ github.repository }}.git .
+          else
+            git pull origin main
+          fi
+          
+          echo "${{ secrets.ENV_FILE }}" > cookibud-front/.env
+          echo "${{ secrets.API_ENV_FILE }}" > cookibud-api/.env
+
+          mkdir -p cookibud-api/static/uploads
           
           docker-compose up -d --build
           docker image prune -f
