@@ -13,13 +13,9 @@ jobs:
           path: 'current_app' 
 
       - name: Deploy
+        working-directory: ${{ vars.DEPLOY_PATH }}
         run: |
-          mkdir -p ${{ vars.DEPLOY_PATH }}
-          
-          # Synchronize checked out code to the permanent folder
-          cp -R ./current_app/* ${{ vars.DEPLOY_PATH }}/
-          
-          cd ${{ vars.DEPLOY_PATH }}
+          git pull origin main
           
           docker-compose up -d --build
           docker image prune -f
