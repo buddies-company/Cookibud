@@ -1,4 +1,4 @@
-import { Container, Heading, StackedList, Card, Button, Input, Select, type Option } from "@soilhat/react-components";
+import { Heading, StackedList, Card, Button, Input, Select, type Option } from "@soilhat/react-components";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { callApi, getApiUrl } from "../../services/api";
@@ -56,7 +56,7 @@ export default function Recipes() {
   }, [query, selectedTags, page, pageSize, sortValue]);
 
   return (
-    <Container>
+    <>
       <Heading title="Recipes">
         <Button onClick={() => navigate("/recipes/new")}>
           New Recipe
@@ -175,6 +175,6 @@ export default function Recipes() {
           </div>
         </div>
       )}
-    </Container>
+    </>
   );
 }

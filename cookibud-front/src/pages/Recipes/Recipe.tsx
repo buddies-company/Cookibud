@@ -1,4 +1,4 @@
-import { Container, Heading, Card, Form, Input, Button, Textarea, StackedList, Modal, ImageUploader, TagInput, Select } from "@soilhat/react-components";
+import { Heading, Card, Form, Input, Button, Textarea, StackedList, Modal, ImageUploader, TagInput, Select } from "@soilhat/react-components";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEventHandler, type KeyboardEvent } from "react";
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from "../../routing/useAuth";
@@ -138,7 +138,7 @@ export default function Recipe() {
   };
 
   return (
-    <Container>
+    <>
       <Heading title={recipeId === "new" ? t("new_recipe") : `${recipe.title}`}>
         {recipeId !== "new" && !isEditing && recipe.author_id && user && user.id === recipe.author_id && (
           <Button onClick={() => setIsEditing(true)} className="px-3 py-1" variant="border">Edit</Button>
@@ -259,7 +259,7 @@ export default function Recipe() {
           </Card>
         </>
       )}
-    </Container>
+    </>
   );
 }
 

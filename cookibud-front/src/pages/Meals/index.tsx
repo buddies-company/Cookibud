@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Container, Heading, Card, Button, Modal, Calendar } from "@soilhat/react-components";
+import { Heading, Card, Button, Modal, Calendar } from "@soilhat/react-components";
 import SearchRecipe from './SearchRecipe';
 import { callApi } from "../../services/api";
 import { useNavigate } from 'react-router-dom';
@@ -103,7 +103,7 @@ export default function MealsPage() {
   }
 
   return (
-    <Container>
+    <>
       <Heading title={`Meals calendar`}>
         <div>
           <Button onClick={() => navigate("/groceries")} className="px-3 py-1">Grocery list</Button>
@@ -157,6 +157,6 @@ export default function MealsPage() {
             </div>
           </form>
       </Modal>
-    </Container>
+    </>
   )
 }

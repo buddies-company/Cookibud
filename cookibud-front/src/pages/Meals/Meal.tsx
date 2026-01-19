@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { formatQtyUnit } from '../../utils/quantities';
 import { useParams, useNavigate } from 'react-router-dom';
 import { callApi } from '../../services/api';
-import { Container, Heading, Card, Button } from '@soilhat/react-components';
+import { Heading, Card, Button } from '@soilhat/react-components';
 import type { Meal } from '../../utils/constants/types';
 import type { IRecipe } from '../Recipes/types';
 
@@ -60,7 +60,7 @@ export default function MealPage() {
         load();
     }, [mealId]);
 
-    if (!mealId) return <Container><Card><div>No meal selected</div></Card></Container>;
+    if (!mealId) return <><Card><div>No meal selected</div></Card></>;
 
     const handleDelete: MouseEventHandler<HTMLButtonElement> = (e) => {
         e.preventDefault();
@@ -80,7 +80,7 @@ export default function MealPage() {
     }
 
     return (
-        <Container>
+        <>
             <Heading title={`Meal ${meal?.date ?? ''}`}>
                 <div className="flex gap-2">
                     <Button className="bg-red-500" onClick={handleDelete}>Delete</Button>
@@ -153,6 +153,6 @@ export default function MealPage() {
                     </div>
                 )}
             </Card>
-        </Container>
+        </>
     )
 }

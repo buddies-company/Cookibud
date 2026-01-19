@@ -56,10 +56,10 @@ export default function Login() {
                     variant="outline"
                     required
                 />
-                <Button  onClick={() => localStorage.removeItem("demo")}>
+                <Button  onClick={() => localStorage.removeItem("demo")} className="w-full">
                     {t("login")}
                 </Button>
-                <Button onClick={() => localStorage.setItem("demo", "true")} variant="border">
+                <Button onClick={() => localStorage.setItem("demo", "true")} variant="border" className="w-full">
                     {t("demo")}
                 </Button>
             </Form>
