@@ -18,6 +18,8 @@ services:
       - mongo
     environment:
       - MONGO_URI=mongodb://mongo:27017/cookibud
+      - FRONTEND_URL=front:5173
+      - ADAPTER=mongodb
     ports:
       - "8000:8000"
     volumes:
@@ -25,7 +27,8 @@ services:
       - uploads_data:/app/static/uploads
 
   front:
-    env_file: cookibud-front/.env
+    environment:
+      - VITE_API=api:8000
     build:
       context: .
       dockerfile: cookibud-front/Dockerfile
