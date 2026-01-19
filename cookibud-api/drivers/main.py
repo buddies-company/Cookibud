@@ -5,7 +5,6 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import iterate_in_threadpool
 
@@ -28,19 +27,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Cookibud API", lifespan=lifespan)
-
-origins = [
-    "http://localhost:5173",
-    settings.frontend_url,
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 app.mount(
     f"/{settings.uploads_dir}",

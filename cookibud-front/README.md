@@ -46,16 +46,6 @@ npm run dev
 
 This starts the frontend on http://localhost:5173 by default.
 
-### Environment
-
-To override the API base URL create a `.env` file in `cookibud-front` with:
-
-```
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-Restart the dev server after editing environment variables.
-
 ## Deploy + Release
 
 ### Build for production

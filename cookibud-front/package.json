@@ -11,6 +11,7 @@
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },
+  "proxy": "http://localhost:8000",
   "dependencies": {
     "@soilhat/react-components": "^1.5.1",
     "i18next": "^25.5.2",

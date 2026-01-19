@@ -3,7 +3,7 @@ import { saveDataToCache, getCachedData } from "./idb";
 
 export const getApiUrl = (url: string) => {
     const isDemo = localStorage.getItem("demo")
-    const api = isDemo ? "/demo" : import.meta.env.VITE_API;
+    const api = isDemo ? "/demo" : "/api";
     const postfix = isDemo ? ".json" : "";
     return `${api}${url}${postfix}`
 }

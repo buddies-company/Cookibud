@@ -57,4 +57,13 @@ const manifestForPlugIn: Partial<VitePWAOptions> = {
 
 export default defineConfig({
   plugins: [react(), VitePWA(manifestForPlugIn), tailwindcss(),],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''), // Removes /api before sending to backend
+      },
+    },
+  },
 })
