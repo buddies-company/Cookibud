@@ -24,8 +24,8 @@ class GroceryList(BaseModel):
     user_id: Optional[str] = None
     created_at: Optional[datetime] = None
     title: Optional[str] = None
-    period_start: Optional[date] = None
-    period_end: Optional[date] = None
+    period_start: Optional[datetime] = None
+    period_end: Optional[datetime] = None
     items: List[GroceryItem] = []
 
     model_config = ConfigDict(

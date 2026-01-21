@@ -14,10 +14,6 @@ jobs:
 
       - name: Deploy
         run: |
-          # Create directory if it doesn't exist
-          mkdir -p ${{ vars.DEPLOY_PATH }}
-          cd ${{ vars.DEPLOY_PATH }}
-          
           # Initialize git if empty, otherwise pull
           if [ ! -d ".git" ]; then
             git clone git@github.com:${{ github.repository }}.git .

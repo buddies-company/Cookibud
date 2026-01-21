@@ -71,13 +71,13 @@ activemq-data/
 
 # Environments
 .env
-.envrc
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+.direnv
 
 
 node_modules
@@ -88,6 +88,6 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 
-.env
 .npmrc
+dev-dist
 cookibud-api/static/uploads/
