@@ -13,14 +13,7 @@ jobs:
           path: 'current_app' 
 
       - name: Deploy
-        run: |
-          # Initialize git if empty, otherwise pull
-          if [ ! -d ".git" ]; then
-            git clone git@github.com:${{ github.repository }}.git .
-          else
-            git pull origin main
-          fi
-          
+        run: |          
           echo "${{ secrets.FRONT_ENV_FILE }}" > cookibud-front/.env
           echo "${{ secrets.API_ENV_FILE }}" > cookibud-api/.env
 
