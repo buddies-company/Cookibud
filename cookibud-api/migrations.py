@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 async def migrate_date_fields():
-    mongo_url = os.getenv("DATABASE_URL", "mongodb://localhost:27017")
+    mongo_url = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     client = AsyncIOMotorClient(mongo_url)
     db = client["Cookibud"]
 
