@@ -20,7 +20,6 @@ services:
       - MONGO_URI=mongodb://mongo:27017/cookibud
       - ADAPTER=mongodb
     volumes:
-      - ./cookibud-api:/app:ro
       - uploads_data:/app/static/uploads
 
   front:

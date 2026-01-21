@@ -7,6 +7,11 @@ jobs:
   deploy:
     runs-on: [self-hosted, nixos-server] 
     steps:
+      - name: Cleanup workspace
+        run: |
+          sudo rm -rf ${{ github.workspace }}/* || true
+          sudo rm -rf ${{ github.workspace }}/.* || true
+
       - name: Checkout code
         uses: actions/checkout@v4
 
