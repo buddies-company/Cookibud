@@ -10,6 +10,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: 🔒 Fix Permissions
+        run: |
+          # Ensure the Docker user can read the frontend files
+          sudo chown -R 1000:1000 cookibud-front 
+          chmod -R 755 cookibud-front/public
+
       - name: Deploy
         run: |          
           echo "${{ secrets.FRONT_ENV_FILE }}" > cookibud-front/.env
@@ -20,6 +26,6 @@ jobs:
           # Create .npmrc file for private GitHub packages
           # We use printf to avoid trailing newline issues with tokens
           printf "@soilhat:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n" "${{ secrets.GITHUB_TOKEN }}" > cookibud-front/.npmrc
-          
+
           docker-compose up -d --build
           docker image prune -f
