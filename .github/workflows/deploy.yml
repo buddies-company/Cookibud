@@ -10,12 +10,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔒 Fix Permissions
-        run: |
-          # Ensure the Docker user can read the frontend files
-          sudo chown -R 1000:1000 cookibud-front 
-          chmod -R 755 cookibud-front/public
-
       - name: Deploy
         run: |          
           echo "${{ secrets.FRONT_ENV_FILE }}" > cookibud-front/.env
