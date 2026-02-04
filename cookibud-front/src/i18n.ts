@@ -12,7 +12,7 @@ i18n
       escapeValue: false,
     },
     backend: {
-      loadPath: `/i18n/{{lng}}.json`,
+      loadPath: `/i18n/{{lng}}.json?v=${new Date().getTime()}`,
     },
   });
 

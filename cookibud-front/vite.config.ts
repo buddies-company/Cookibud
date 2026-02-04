@@ -86,5 +86,10 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ''), // Removes /api before sending to backend
       },
     },
+    port: 5174,
+    strictPort: true, 
+    hmr: {
+      port: 5174,
+    },
   },
 })
