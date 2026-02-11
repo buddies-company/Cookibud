@@ -12,4 +12,6 @@ export interface IRecipe {
   author_id?: string;
   tags?: string[];
   reviews?: IReview[];
+  freezing_instructions ?:string;
+  unfreezing_instructions?:string;
 }

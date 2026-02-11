@@ -17,6 +17,8 @@ class Recipe(BaseModel):
     id: str | None = None
     title: str
     description: str | None = None
+    freezing_instructions: str | None = None
+    unfreezing_instructions: str | None = None
     ingredients: list[Ingredient]  # ingredient name to quantity in g mapping
     prep_time: int | None = None  # in minutes
     cook_time: int | None = None  # in minutes
