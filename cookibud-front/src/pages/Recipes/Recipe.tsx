@@ -7,12 +7,11 @@ import { formatQtyUnit } from "../../utils/quantities";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { IRecipe, IIngredient, IReview } from "./types";
-import type { MealRecipe, Meal } from "../../utils/constants/types";
+import type { Meal } from "../../utils/constants/types";
 
 export default function Recipe() {
   const [recipe, setRecipe] = useState<IRecipe>({});
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
-  const [userMeals, setUserMeals] = useState<Meal[]>([]);
   const [planning, setPlanning] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
   const { user } = useAuth();
@@ -28,8 +27,6 @@ export default function Recipe() {
       callApi<IRecipe>(`/recipes/${recipeId}`)
         .then((res) => { setRecipe(res.data); setIsEditing(false); })
         .catch((error) => console.error("Error fetching recipe:", error));
-      
-      callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])).catch(() => setUserMeals([]));
     }
     callApi<string[]>(`/recipes/ingredient-names`).then((res) => setIngredientNames(res.data || [])).catch(() => setIngredientNames([]));
     callApi<string[]>(`/recipes/tags`).then((res) => setAllTags(res.data || [])).catch(() => setAllTags([]));
@@ -99,6 +96,12 @@ export default function Recipe() {
   }
 
   const uploadImage = async (file: File): Promise<string | null> => {
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      alert("File is too large. Please upload an image under 5MB.");
+      return null;
+    }
+
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
@@ -109,7 +112,7 @@ export default function Recipe() {
       return fileUrl;
     } catch (error) {
       console.error("Upload failed. If file > 1MB, check back-end/nginx limits.", error);
-      throw error; 
+      throw error;
     } finally {
       setIsUploading(false);
     }
@@ -134,7 +137,7 @@ export default function Recipe() {
             />
             <Input name="title" label={t("title")} placeholder={t("title")} autoComplete="off" onChange={handleInput} value={recipe.title || ""} />
             <TagInput label="Tags" placeholder="breakfast, batch-cooking..." tags={recipe.tags || []} suggestions={allTags} onChange={(newTags) => setRecipe(prev => ({ ...prev, tags: newTags }))} className="mb-2" />
-            
+
             <div className="label mt-4">Ingredients</div>
             <StackedList emptyMessage="No ingredients added yet.">
               {recipe.ingredients && recipe.ingredients.map((ingredient, index) => (
@@ -152,8 +155,8 @@ export default function Recipe() {
             </div>
 
             <div className="flex gap-2 mt-6">
-                {(recipeId && recipeId !== "new") && <Button type="button" color_name="danger" onClick={handleDelete}>{t("delete_recipe")}</Button>}
-                <Button type="submit" disabled={isUploading}>{t("save_recipe")}</Button>
+              {(recipeId && recipeId !== "new") && <Button type="button" color_name="danger" onClick={handleDelete}>{t("delete_recipe")}</Button>}
+              <Button type="submit" disabled={isUploading}>{t("save_recipe")}</Button>
             </div>
           </Form>
         </Card>
@@ -167,9 +170,9 @@ export default function Recipe() {
                 ))}
               </div>
             )}
-            
+
             {recipe.image_url && <img src={getApiUrl(recipe.image_url)} alt={recipe.title} className="w-full max-h-96 object-cover rounded-lg mb-6 shadow-sm" />}
-            
+
             <div className="grid md:grid-cols-3 gap-8">
               <div className="md:col-span-1">
                 <h3 className="font-bold text-lg mb-4 underline decoration-primary underline-offset-4">Ingredients</h3>
@@ -182,37 +185,37 @@ export default function Recipe() {
                   ))}
                 </ul>
               </div>
-              
+
               <div className="md:col-span-2 space-y-6">
                 <div>
-                    <h3 className="font-bold text-lg mb-2">Instructions</h3>
-                    <div className="markdown prose dark:prose-invert max-w-none">
-                        <ReactMarkdown>{recipe.description || ''}</ReactMarkdown>
-                    </div>
+                  <h3 className="font-bold text-lg mb-2">Instructions</h3>
+                  <div className="markdown prose dark:prose-invert max-w-none">
+                    <ReactMarkdown>{recipe.description || ''}</ReactMarkdown>
+                  </div>
                 </div>
 
                 {/* Display Frozen Storage Info */}
                 {(recipe.freezing_instructions || recipe.unfreezing_instructions) && (
                   <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
                     <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <h3 className="font-bold text-blue-800 dark:text-blue-300">Frozen Storage Guide</h3>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <h3 className="font-bold text-blue-800 dark:text-blue-300">Frozen Storage Guide</h3>
                     </div>
                     <div className="p-4 grid md:grid-cols-2 gap-6">
-                        {recipe.freezing_instructions && (
-                            <div>
-                                <h4 className="text-xs font-bold uppercase text-blue-600 mb-2">Freezing</h4>
-                                <div className="markdown prose prose-sm dark:prose-invert"><ReactMarkdown>{recipe.freezing_instructions}</ReactMarkdown></div>
-                            </div>
-                        )}
-                        {recipe.unfreezing_instructions && (
-                            <div>
-                                <h4 className="text-xs font-bold uppercase text-blue-600 mb-2">Unfreezing & Reheating</h4>
-                                <div className="markdown prose prose-sm dark:prose-invert"><ReactMarkdown>{recipe.unfreezing_instructions}</ReactMarkdown></div>
-                            </div>
-                        )}
+                      {recipe.freezing_instructions && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase text-blue-600 mb-2">Freezing</h4>
+                          <div className="markdown prose prose-sm dark:prose-invert"><ReactMarkdown>{recipe.freezing_instructions}</ReactMarkdown></div>
+                        </div>
+                      )}
+                      {recipe.unfreezing_instructions && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase text-blue-600 mb-2">Unfreezing & Reheating</h4>
+                          <div className="markdown prose prose-sm dark:prose-invert"><ReactMarkdown>{recipe.unfreezing_instructions}</ReactMarkdown></div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -223,12 +226,12 @@ export default function Recipe() {
           {/* Review & Plan sections remain the same... */}
           <Card className="p-4">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold">Community Reviews</h3>
-                {user && <Button onClick={() => setPlanning(true)} size="small">Plan this recipe</Button>}
+              <h3 className="text-xl font-bold">Community Reviews</h3>
+              {user && <Button onClick={() => setPlanning(true)} size="small">Plan this recipe</Button>}
             </div>
             {/* ... Review logic ... */}
             <ReviewForm recipeId={recipeId!} onAdded={(rev) => setRecipe((prev) => ({ ...prev, reviews: [...(prev.reviews || []), rev] }))} />
-            <PlanModal open={planning} onClose={() => setPlanning(false)} recipeId={recipeId!} recipeTitle={recipe.title || ''} onPlanned={() => { callApi<Meal[]>(`/meals`).then(r => setUserMeals(r.data || [])); setPlanning(false); }} />
+            <PlanModal open={planning} onClose={() => setPlanning(false)} recipeId={recipeId!} recipeTitle={recipe.title || ''} onPlanned={() => { setPlanning(false); }} />
           </Card>
         </div>
       )}
@@ -309,7 +312,7 @@ const Ingredient = ({ data, index, onSave, onDelete, names }: { data?: IIngredie
     setOpen(false);
   }
 
-  const unitOptions = [{value: 'g', label: 'g'}, {value: 'kg', label: 'kg'}, {value: 'ml', label: 'ml'}, {value: 'l', label: 'l'}, {value: 'tbsp', label: 'tbsp'}, {value: 'tsp', label: 'tsp'}, {value: 'cup', label: 'cup'}, {value: 'pc', label: 'pc'}, {value: '', label: '(none)'}];
+  const unitOptions = [{ value: 'g', label: 'g' }, { value: 'kg', label: 'kg' }, { value: 'ml', label: 'ml' }, { value: 'l', label: 'l' }, { value: 'tbsp', label: 'tbsp' }, { value: 'tsp', label: 'tsp' }, { value: 'cup', label: 'cup' }, { value: 'pc', label: 'pc' }, { value: '', label: '(none)' }];
 
   return (
     <div>
@@ -393,7 +396,7 @@ const ReviewForm = ({ recipeId, onAdded }: { recipeId: string, onAdded: (rev: IR
         <label className="text-sm">Rating</label>
         <Select
           label="Rating"
-          options={[5,4,3,2,1].map(v => ({ value: v, label: `${v} star${v > 1 ? 's' : ''}` }) )}
+          options={[5, 4, 3, 2, 1].map(v => ({ value: v, label: `${v} star${v > 1 ? 's' : ''}` }))}
           value={rating}
           onChange={(e) => setRating(Number(e))}
         />
