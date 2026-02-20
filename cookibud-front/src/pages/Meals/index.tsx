@@ -110,8 +110,7 @@ export default function MealsPage() {
         </div>
       </Heading>
 
-      <Card className="p-4">
-        
+      <Card>
         <Calendar
           year={year}
           month={month}

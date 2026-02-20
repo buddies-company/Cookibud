@@ -65,27 +65,10 @@ export default function MealPage() {
 
     if (!mealId) return <Card><div>No meal selected</div></Card>;
 
-    const handleDelete: MouseEventHandler<HTMLButtonElement> = (e) => {
-        e.preventDefault();
-        if (!mealId) return;
-        (async () => {
-            try {
-                setLoading(true);
-                await callApi(`/meals/${mealId}`, "DELETE");
-                navigate('/meals');
-            } catch (err) {
-                console.error('Failed to delete meal', err);
-            } finally {
-                setLoading(false);
-            }
-        })();
-    }
-
     return (
         <>
             <Heading title={`Meal ${meal?.date ?? ''}`}>
                 <div className="flex gap-2">
-                    <Button className="bg-red-500" onClick={handleDelete}>Delete</Button>
                     <Button onClick={() => navigate(-1)}>Back</Button>
                 </div>
             </Heading>
