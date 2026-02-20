@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEventHandler } from 'react';
+import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { formatQtyUnit } from '../../utils/quantities';
 import { useParams, useNavigate } from 'react-router-dom';
