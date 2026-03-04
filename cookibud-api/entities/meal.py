@@ -6,11 +6,12 @@ from pydantic import BaseModel, ConfigDict
 
 
 class RecipeEntry(BaseModel):
-    """Entry of a recipe in a meal, with servings"""
+    """Entry of a recipe in a meal, with servings and meal type"""
 
     recipe_id: str
     title: Optional[str] = None
     servings: int = 1
+    meal_type: Optional[str] = None  # e.g., "breakfast", "lunch", "dinner", "snack"
 
 
 class Meal(BaseModel):

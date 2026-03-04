@@ -3,9 +3,11 @@ import ReactMarkdown from 'react-markdown';
 import { formatQtyUnit } from '../../utils/quantities';
 import { useParams, useNavigate } from 'react-router-dom';
 import { callApi } from '../../services/api';
-import { Heading, Card, Button } from '@soilhat/react-components';
-import type { Meal } from '../../utils/constants/types';
+import { Heading, Card, Button, Pill, Select } from '@soilhat/react-components';
+import type { Meal, MealRecipe, MealType } from '../../utils/constants/types';
 import type { IRecipe } from '../Recipes/types';
+
+const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 export default function MealPage() {
     const { mealId } = useParams();
@@ -23,33 +25,44 @@ export default function MealPage() {
                 const res = await callApi<Meal>(`/meals/${mealId}`);
                 const m: Meal = res.data;
                 setMeal(m);
-                // Fetch each recipe details and aggregate ingredients
+
                 const agg: Record<string, { qty?: number; unit?: string; entries: string[] }> = {};
+
                 for (const r of m.items || []) {
                     const rid = r.recipe_id;
                     if (!rid) continue;
-                    
+
                     const recipeRes = await callApi<IRecipe>(`/recipes/${rid}`);
                     const recipe = recipeRes.data;
                     setRecipesById(prev => ({ ...prev, [rid]: recipe }));
-                    
+
                     const servings = r.servings ?? 1;
+
                     for (const ing of recipe.ingredients || []) {
                         const name = ing.name;
                         const qtyRaw = String(ing.quantity ?? '');
-                        const exec = /^\s*(\d*\.?\d+)\s*(.*)$/u.exec(qtyRaw);
-                        
-                        if (exec) {
-                            const v = Number.parseFloat(exec[1]) * servings;
-                            const unit = (exec[2] || '').trim();
-                            const key = `${name}::${unit}`;
-                            if (!agg[key]) agg[key] = { qty: 0, unit, entries: [] };
-                            agg[key].qty = (agg[key].qty ?? 0) + v;
-                            agg[key].entries.push(`${recipe.title} ×${servings}: ${qtyRaw}`);
+
+                        const match = qtyRaw.match(/^(\d*\.?\d+)\s*(.*)$/);
+
+                        let numericQty = 0;
+                        let unit = (ing.unit || '').trim();
+
+                        if (match) {
+                            numericQty = parseFloat(match[1]) * servings;
+                            if (!unit) unit = match[2].trim();
+                        }
+
+                        const key = `${name}::${unit}`;
+
+                        if (!agg[key]) {
+                            agg[key] = { qty: 0, unit: unit, entries: [] };
+                        }
+
+                        if (numericQty > 0) {
+                            agg[key].qty = (agg[key].qty ?? 0) + numericQty;
+                            agg[key].entries.push(`${recipe.title}: ${qtyRaw}`);
                         } else {
-                            const key = `${name}::`;
-                            if (!agg[key]) agg[key] = { entries: [] };
-                            agg[key].entries.push(`${recipe.title} ×${servings}: ${qtyRaw || '—'}`);
+                            agg[key].entries.push(`${recipe.title}: ${qtyRaw || '—'}`);
                         }
                     }
                 }
@@ -63,88 +76,131 @@ export default function MealPage() {
         load();
     }, [mealId]);
 
-    if (!mealId) return <Card><div>No meal selected</div></Card>;
+    const groupedByMealType = (items: MealRecipe[]) => {
+        const grouped: Record<string, MealRecipe[]> = {};
+        MEAL_TYPES.forEach(type => { grouped[type] = []; });
+        items.forEach(item => {
+            const type = item.meal_type || 'lunch';
+            grouped[type].push(item);
+        });
+        return grouped;
+    };
+
+    if (!mealId) return <Card className="p-10 text-center">No meal selected</Card>;
+
+    const itemsByMealType = groupedByMealType(meal?.items || []);
+
+    const updateMealType = async (itemIndex: number, newType: MealType) => {
+        if (!meal || !mealId) return;
+
+        const updatedItems = [...(meal.items || [])];
+        updatedItems[itemIndex] = { ...updatedItems[itemIndex], meal_type: newType };
+
+        try {
+            const payload = { ...meal, items: updatedItems };
+            await callApi(`/meals/${mealId}`, "PUT", undefined, payload);
+
+            setMeal(payload);
+        } catch (err) {
+            console.error("Failed to update meal type", err);
+        }
+    };
 
     return (
-        <>
-            <Heading title={`Meal ${meal?.date ?? ''}`}>
-                <div className="flex gap-2">
-                    <Button onClick={() => navigate(-1)}>Back</Button>
-                </div>
+        <div className="max-w-4xl mx-auto space-y-6 pb-20">
+            <Heading title={`Meal Plan: ${meal?.date ?? ''}`}>
+                <Button onClick={() => navigate(-1)} variant="border">← Back</Button>
             </Heading>
-            <Card className="p-4">
-                {loading ? <div>Loading…</div> : (
-                    <div>
-                        <div className="mb-4">
-                            <strong className="block mb-2">Planned recipes</strong>
-                            <ul className="space-y-3">
-                                {(meal?.items || []).map((r) => {
-                                    const rid = r.recipe_id ?? Math.random().toString(36).slice(2, 7);
-                                    return (
-                                        <li key={rid} className="border-b border-border pb-3 last:border-0">
-                                            <div className="flex items-center justify-between">
-                                                <div className="font-medium text-lg">{r.title ?? r.recipe_id} <span className="text-text-secondary text-sm ml-2">×{r.servings} servings</span></div>
-                                                <div className="flex gap-2">
-                                                    {/* Navigation button to full recipe page */}
-                                                    <Button onClick={() => navigate(`/recipes/${r.recipe_id}`)} size="small" variant="border">
-                                                        See recipe
-                                                    </Button>
-                                                    <Button onClick={() => setExpandedRecipes(prev => ({ ...prev, [rid]: !prev[rid] }))} size="small">
-                                                        {expandedRecipes[rid] ? 'Hide quick view' : 'Quick view'}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                            
-                                            {expandedRecipes[rid] && recipesById[rid] && (
-                                                <Card className="mt-3 p-4 bg-surface-panel dark:bg-surface-panel-dark">
-                                                    <div className="mb-4">
-                                                        <strong className="text-sm uppercase tracking-wider text-text-secondary block mb-2">Ingredients:</strong>
-                                                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 ml-4 list-disc">
-                                                            {recipesById[rid]?.ingredients?.map((ing, idx) => {
-                                                                const qty = typeof ing.quantity === 'number' ? ing.quantity * (r.servings ?? 1) : undefined;
-                                                                const unit = ing.unit ?? '';
-                                                                return <li key={`${ing.name}-${idx}`} className="text-sm">{ing.name}{qty ? ` — ${formatQtyUnit(qty, unit)}` : ''}</li>
-                                                            })}
-                                                        </ul>
-                                                    </div>
-                                                    <div>
-                                                        <strong className="text-sm uppercase tracking-wider text-text-secondary block mb-2">Instructions:</strong>
-                                                        <div className="markdown prose prose-sm dark:prose-invert max-w-none">
-                                                            <ReactMarkdown>{recipesById[rid].description ?? ''}</ReactMarkdown>
-                                                        </div>
-                                                    </div>
-                                                </Card>
-                                            )}
-                                        </li>
-                                    )
-                                })}
-                            </ul>
-                        </div>
 
-                        <div className="mt-8 border-t pt-6">
-                            <strong className="block mb-4 text-xl">Combined Grocery List</strong>
-                            <ul className="space-y-4">
-                                {Object.entries(grocery).map(([key, val]) => {
-                                    const [name, unit] = key.split('::');
-                                    let qtyDisplay: string | undefined = undefined;
-                                    if (val.qty !== undefined) {
-                                        const unitSuffix = unit ? ' ' + unit : '';
-                                        qtyDisplay = `${Number(val.qty.toFixed(2))}${unitSuffix}`;
-                                    }
-                                    return (
-                                        <li key={key} className="bg-surface-panel/30 dark:bg-surface-panel-dark/30 p-3 rounded-lg border border-border/50">
-                                            <div className="font-bold text-md text-primary">{name}{qtyDisplay ? ` — ${qtyDisplay}` : ''}</div>
-                                            <div className="text-xs text-text-secondary mt-2 flex flex-col gap-0.5">
-                                                {val.entries.map((e, idx) => <div key={idx} className="flex items-center gap-2"><span className="w-1 h-1 bg-border rounded-full"></span>{e}</div>)}
-                                            </div>
-                                        </li>
-                                    )
-                                })}
-                            </ul>
+            {loading ? (
+                <Card className="p-10 text-center">Loading meal data...</Card>
+            ) : (
+                <>
+                    <Card className="p-6">
+                        <div className="space-y-8">
+                            {MEAL_TYPES.map((mealType) => {
+                                const recipes = itemsByMealType[mealType] || [];
+                                if (recipes.length === 0) return null;
+                                return (
+                                    <div key={mealType}>
+                                        <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-4 border-b border-border pb-2">
+                                            {mealType}
+                                        </h3>
+                                        <div className="grid gap-3">
+                                            {recipes.map((r, idx) => {
+                                                const rid = r.recipe_id ?? `idx-${idx}`;
+                                                const isExpanded = expandedRecipes[rid];
+                                                return (
+                                                    <div key={rid} className="border border-border rounded-xl p-4 bg-surface-panel/10">
+                                                        <div className="flex items-center justify-between">
+                                                            <Select
+                                                                value={r.meal_type || 'lunch'}
+                                                                options={MEAL_TYPES.map(type => (
+                                                                    {key: type, value: type, label: type.toUpperCase()}
+                                                                ))}
+                                                                onChange={(e) => updateMealType(idx, e as MealType)}
+                                                            />
+                                                            <div>
+                                                                <div className="font-bold text-lg">{r.title ?? 'Untitled Recipe'}</div>
+                                                                <div className="text-sm text-text-secondary dark:text-text-secondary-dark">{r.servings} Servings</div>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <Button onClick={() => setExpandedRecipes(p => ({ ...p, [rid]: !isExpanded }))} size="small" variant="ghost">
+                                                                    {isExpanded ? 'Hide' : 'Quick View'}
+                                                                </Button>
+                                                                <Button onClick={() => navigate(`/recipes/${r.recipe_id}`)} size="small" variant="border">Recipe</Button>
+                                                            </div>
+                                                        </div>
+                                                        {isExpanded && recipesById[rid] && (
+                                                            <div className="mt-4 pt-4 border-t border-border grid md:grid-cols-2 gap-4">
+                                                                <ul className="text-sm space-y-1">
+                                                                    {recipesById[rid].ingredients?.map((ing, i) => (
+                                                                        <li key={i}>• {ing.name}: {formatQtyUnit(parseFloat(String(ing.quantity)) * (r.servings ?? 1), ing.unit ?? '')}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    </div>
-                )}
-            </Card>
-        </>
-    )
+                    </Card>
+
+                    <Card className="p-6 bg-surface-panel/30">
+                        <Heading title="Consolidated Grocery List" meta={[{ key: "subtitle", value: "All units calculated for your planned servings" }]} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+                            {Object.entries(grocery).map(([key, val]) => {
+                                const [name, unitFromKey] = key.split('::');
+
+                                const finalUnit = val.unit || unitFromKey || '';
+                                const displayQty = (val.qty && val.qty > 0)
+                                    ? formatQtyUnit(val.qty, finalUnit)
+                                    : '';
+
+                                return (
+                                    <div key={key} className="p-3 bg-surface-base dark:bg-surface-base-dark rounded-lg border border-border flex justify-between items-center">
+                                        <div>
+                                            <div className="font-bold text-sm">{name}</div>
+                                            <div className="text-[10px] text-text-secondary opacity-60">
+                                                {val.entries.join(' | ')} {finalUnit}
+                                            </div>
+                                        </div>
+                                        {displayQty && (
+                                            <span className="font-black text-primary text-sm whitespace-nowrap ml-4">
+                                                {displayQty}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </Card>
+                </>
+            )}
+        </div>
+    );
 }
