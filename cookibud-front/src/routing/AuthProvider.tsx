@@ -5,18 +5,21 @@ import type { User, LoginData } from "../utils/constants/types";
 import { useToast } from "@soilhat/react-components";
 import { AuthContext } from "./AuthContext";
 
-export interface NumberOrStringDictionary {
-    [index: string]: number | string | string[] | NumberOrStringDictionary;
-}
-
 const AuthProvider = () => {
-    const [user, setUser] = useState<User | undefined>(JSON.parse(localStorage.getItem("user") ?? "{}"));
+    const [user, setUser] = useState<User | undefined>(() => {
+        if (typeof window === 'undefined') return undefined;
+        const saved = localStorage.getItem("user");
+        try {
+            return saved ? JSON.parse(saved) : undefined;
+        } catch {
+            return undefined;
+        }
+    });
+
     const location = useLocation();
     const navigate = useNavigate();
     const { error } = useToast();
 
-    // persist last visited non-auth page so we can redirect back after login
-    // stored in sessionStorage as 'lastVisited'
     useEffect(() => {
         try {
             if (typeof sessionStorage !== 'undefined') {
@@ -26,8 +29,7 @@ const AuthProvider = () => {
                 }
             }
         } catch (err) {
-            // sessionStorage may be unavailable (SSR / restricted env)
-            console.debug('sessionStorage not available for lastVisited', err);
+            console.debug('sessionStorage not available', err);
         }
     }, [location]);
 
@@ -112,9 +114,11 @@ const AuthProvider = () => {
     }, [navigate]);
     const value = useMemo(() => ({ user, loginAction, registerAction, logOut }), [user, loginAction, registerAction, logOut]);
 
-    return <AuthContext.Provider value={value}>
-        <Outlet />
-    </AuthContext.Provider>
-}
+    return (
+        <AuthContext.Provider value={value}>
+            <Outlet />
+        </AuthContext.Provider>
+    );
+};
 
 export default AuthProvider;

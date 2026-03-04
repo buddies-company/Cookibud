@@ -30,6 +30,7 @@ Repository-specific guidance
   - Respect i18n patterns in `src/i18n.ts`; return translated strings using `useTranslation` with appropriate keyPrefix.
   - Add unit tests using your project test framework (e.g., React Testing Library + Vitest/Jest) for new components and hooks.
   - Always design UI following Mobile First principles
+  - Prefer using Tailwind CSS instead of custom CSS file
   - Comply to `Brand Guidelines.md`, prefer using Tailwind color variables defined in `src/style.css`
   - Avoid nesting functions more than 4 levels deep.
 

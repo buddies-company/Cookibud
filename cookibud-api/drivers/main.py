@@ -10,7 +10,7 @@ from starlette.concurrency import iterate_in_threadpool
 
 from drivers.config import settings
 from drivers.dependencies import get_token_header
-from drivers.routers import auth, groceries, meals, recipes, uploads
+from drivers.routers import auth, fridge, groceries, meals, recipes, uploads
 from migrations import migrate_date_fields
 
 logger = logging.getLogger("uvicorn.trace")
@@ -91,5 +91,11 @@ app.include_router(
     groceries.router,
     prefix="/groceries",
     tags=["groceries"],
+    dependencies=[Depends(get_token_header)],
+)
+app.include_router(
+    fridge.router,
+    prefix="/fridge",
+    tags=["fridge"],
     dependencies=[Depends(get_token_header)],
 )
