@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { formatQtyUnit } from '../../utils/quantities';
 import { useParams, useNavigate } from 'react-router-dom';
 import { callApi } from '../../services/api';
-import { Heading, Card, Button, Pill, Select } from '@soilhat/react-components';
+import { Heading, Card, Button, Select } from '@soilhat/react-components';
 import type { Meal, MealRecipe, MealType } from '../../utils/constants/types';
 import type { IRecipe } from '../Recipes/types';
 
