@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 const manifestForPlugIn: Partial<VitePWAOptions> = {
   devOptions: {
-    enabled: true // Allows PWA features in dev mode
+    enabled: false // Allows PWA features in dev mode
   },
   registerType: 'autoUpdate',
   includeAssets: [

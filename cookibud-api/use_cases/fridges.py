@@ -156,3 +156,24 @@ class ReadFridgeItemsSortedByExpirationUseCase:
         # Combine: sorted items with expiration, then items without
         sorted_items = items_with_exp + items_without_exp
         return sorted_items
+
+
+@dataclass
+class SearchFridgeItemsUseCase:
+    """Search fridge items by name query"""
+
+    fridge_repository: FridgeRepository
+
+    def __call__(self, user_id: str, query: str) -> list[FridgeItem]:
+        fridges = self.fridge_repository.read(user_id=user_id)
+        if not fridges:
+            raise AccessDeniedError(FRIDGE_NOT_FOUND_OR_DENIED)
+        fridge: Fridge = fridges[0]
+
+        # Filter items by name (case-insensitive, substring match)
+        query_lower = query.lower()
+        filtered_items = [
+            it for it in (fridge.items or [])
+            if query_lower in it.name.lower()
+        ]
+        return filtered_items

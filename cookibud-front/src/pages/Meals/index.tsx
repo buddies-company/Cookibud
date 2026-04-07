@@ -7,18 +7,17 @@ import type { Meal, MealRecipe, MealType } from '../../utils/constants/types';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
-// English comment: Helpers for date string consistency
 function pad(n: number) { return n < 10 ? `0${n}` : `${n}` }
 function toISODate(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
 
 export default function MealsPage() {
   const navigate = useNavigate();
   const today = new Date();
-  
+
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [meals, setMeals] = useState<Meal[]>([]);
-  
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>(undefined);
@@ -41,14 +40,79 @@ export default function MealsPage() {
     }
   };
 
+  const handleEventDrop = async (eventKey: string, targetDate: Date) => {
+    const targetIso = toISODate(targetDate);
+
+    // 1. Parse the key (format: "mealId-index")
+    const [mealId, itemIdxStr] = eventKey.split('-');
+    const itemIdx = parseInt(itemIdxStr, 10);
+
+    // 2. Find the source meal and the specific item
+    const sourceMeal = meals.find(m => m.id === mealId);
+    if (!sourceMeal || !sourceMeal.items?.[itemIdx]) return;
+
+    const itemToMove = sourceMeal.items[itemIdx];
+
+    // Don't do anything if dropped on the same day
+    if (sourceMeal.date === targetIso) return;
+
+    try {
+      // 3. Prepare the updated source meal (item removed)
+      const updatedSourceItems = sourceMeal.items.filter((_, i) => i !== itemIdx);
+
+      // 4. Find or create the target meal
+      const targetMeal = meals.find(m => m.date === targetIso);
+      const updatedTargetItems = targetMeal
+        ? [...(targetMeal.items || []), itemToMove]
+        : [itemToMove];
+
+      // 5. Optimistic UI Update
+      setMeals(prev => {
+        let next = prev.map(m => {
+          if (m.id === mealId) return { ...m, items: updatedSourceItems };
+          if (targetMeal && m.id === targetMeal.id) return { ...m, items: updatedTargetItems };
+          return m;
+        });
+
+        // If the target date didn't have a meal entry yet, add a temporary one
+        if (!targetMeal) {
+          next.push({ id: 'temp-id', date: targetIso, items: updatedTargetItems });
+        }
+        return next;
+      });
+
+      // 6. Persistence: API Calls
+      // Remove from old date
+      await callApi(`/meals/${mealId}`, "PUT", undefined, {
+        ...sourceMeal,
+        items: updatedSourceItems
+      });
+
+      if (targetMeal) {
+        await callApi(`/meals/${targetMeal.id}`, "PUT", undefined, {
+          ...targetMeal,
+          items: updatedTargetItems
+        });
+      } else {
+        await callApi("/meals", "POST", undefined, {
+          date: targetIso,
+          items: [itemToMove]
+        });
+      }
+
+      loadMeals();
+
+    } catch (err) {
+      console.error("Failed to move item", err);
+      loadMeals(); // Rollback
+    }
+  };
+
   // Transform meals into unique calendar events.
-  // We use the array index (idx) to ensure the React 'key' is truly unique.
   const calendarEvents = useMemo(() => {
-    return meals.reduce<Record<string, MealRecipe[]>>((acc, meal) => {
+    return meals.reduce<Record<string, any[]>>((acc, meal) => {
       acc[meal.date] = (meal.items || []).map((item, idx) => ({
-        // 'id' is used for navigation/API calls
-        id: meal.id, 
-        key: `${meal.id}-${idx}`,
+        id: `${meal.id}-${idx}`,
         title: item.meal_type ? item.meal_type.toUpperCase() : (item.title || "Meal"),
         ...item
       }));
@@ -59,7 +123,7 @@ export default function MealsPage() {
   const openPlanModal = (d: Date) => {
     const iso = toISODate(d);
     setSelectedDate(iso);
-    
+
     const existingMeal = meals.find(m => m.date === iso);
     if (existingMeal) {
       setEditingMealId(existingMeal.id ?? null);
@@ -74,14 +138,14 @@ export default function MealsPage() {
   const addPlannedRecipe = () => {
     if (!selectedRecipeId && !selectedRecipeTitle?.trim()) return;
 
-    const entry: MealRecipe = { 
-      recipe_id: selectedRecipeId, 
-      title: selectedRecipeTitle, 
-      servings: selectedServings, 
-      meal_type: selectedMealType as MealType 
+    const entry: MealRecipe = {
+      recipe_id: selectedRecipeId,
+      title: selectedRecipeTitle,
+      servings: selectedServings,
+      meal_type: selectedMealType as MealType
     };
     setPlannedRecipes(prev => [...prev, entry]);
-    
+
     setSelectedRecipeId(undefined);
     setSelectedRecipeTitle(undefined);
     setSelectedServings(1);
@@ -114,20 +178,17 @@ export default function MealsPage() {
         </Button>
       </Heading>
 
-      <Card className="p-0 overflow-hidden shadow-xl border-none">
-        <Calendar
-          year={year}
-          month={month}
-          eventsByDate={calendarEvents}
-          onPrev={() => month === 0 ? (setMonth(11), setYear(y => y - 1)) : setMonth(m => m - 1)}
-          onNext={() => month === 11 ? (setMonth(0), setYear(y => y + 1)) : setMonth(m => m + 1)}
-          // Action button (Plan) opens the modal to add/edit items
-          onAction={openPlanModal}
-          // Clicking an event (the meal label) takes you to the Detail Page
-          onEventClick={(id) => navigate(`/meals/${id}`)}
-          actionLabel="Plan"
-        />
-      </Card>
+      <Calendar
+        year={year}
+        month={month}
+        eventsByDate={calendarEvents}
+        onPrev={() => month === 0 ? (setMonth(11), setYear(y => y - 1)) : setMonth(m => m - 1)}
+        onNext={() => month === 11 ? (setMonth(0), setYear(y => y + 1)) : setMonth(m => m + 1)}
+        onAction={openPlanModal}
+        onEventClick={(id) => navigate(`/meals/${id}`)}
+        onEventDrop={handleEventDrop}
+        actionLabel="Plan"
+      />
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
         <div className="p-2">
@@ -140,9 +201,9 @@ export default function MealsPage() {
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold uppercase ml-1">Meal Type</label>
-                  <select 
-                    value={selectedMealType} 
-                    onChange={(e) => setSelectedMealType(e.target.value as MealType)} 
+                  <select
+                    value={selectedMealType}
+                    onChange={(e) => setSelectedMealType(e.target.value as MealType)}
                     className="w-full rounded-xl border-border dark:border-border-dark bg-white dark:bg-gray-900 text-sm p-2.5 h-[42px]"
                   >
                     <option value="">Select type...</option>

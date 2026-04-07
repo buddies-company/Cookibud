@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Heading, Card, Button, Modal, Input, Pill, StackedList } from "@soilhat/react-components";
 import { callApi } from "../../services/api";
 
@@ -20,6 +20,10 @@ export default function FridgePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FridgeItem | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<FridgeItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formData, setFormData] = useState<FridgeItem>({
     name: "",
     expiration_date: undefined,
@@ -28,26 +32,47 @@ export default function FridgePage() {
   });
 
   useEffect(() => {
-    loadFridge();
+    loadSortedFridge();
   }, []);
 
-  const loadFridge = async () => {
-    try {
-      const res = await callApi<Fridge>("/fridge");
-      setFridge(res.data || { items: [] });
-    } catch (err) {
-      console.error("Failed to load fridge", err);
-    }
-  };
-
-  const loadSortedFridge = async (direction: "asc" | "desc") => {
+  const loadSortedFridge = async (direction: "asc" | "desc" = sortDir) => {
     try {
       setSortDir(direction);
+      setSearchQuery(""); 
+      setIsSearching(false);
       const res = await callApi<{ items: FridgeItem[] }>(`/fridge/sorted?sort_dir=${direction}`);
       setFridge({ items: res.data?.items || [] });
     } catch (err) {
       console.error("Failed to load sorted fridge", err);
     }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!query.trim()) {
+      setIsSearching(false);
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await callApi<{ items: FridgeItem[] }>(`/fridge/search?query=${encodeURIComponent(query)}`);
+        setSearchResults(res.data?.items || []);
+      } catch (err) {
+        console.error("Failed to search fridge", err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
   };
 
   const openModal = (item?: FridgeItem) => {
@@ -68,14 +93,13 @@ export default function FridgePage() {
 
   const handleAddOrUpdateItem = async () => {
     if (!formData.name.trim()) return;
-
     try {
       if (editingItem?.id) {
         await callApi(`/fridge/items/${editingItem.id}`, "PUT", undefined, formData);
       } else {
         await callApi("/fridge/items", "POST", undefined, formData);
       }
-      await loadFridge();
+      await loadSortedFridge();
       closeModal();
     } catch (err) {
       console.error("Failed to sync item", err);
@@ -85,7 +109,7 @@ export default function FridgePage() {
   const handleMarkAsUsed = async (itemId: string) => {
     try {
       await callApi(`/fridge/items/${itemId}/mark-used`, "PATCH");
-      await loadFridge();
+      await loadSortedFridge();
     } catch (err) {
       console.error("Failed to update status", err);
     }
@@ -106,43 +130,54 @@ export default function FridgePage() {
   };
 
   const nonUsedItems = fridge.items.filter((item) => !item.used);
+  const displayItems = (searchQuery.trim()) ? searchResults : nonUsedItems;
 
   return (
     <div className="space-y-8 pb-20">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <Heading title="🧊 Fridge & Pantry" meta={[{key: "1", value: "Manage your ingredients and track expiration dates"}]} />
-        <div className="flex flex-wrap gap-2">
+        
+        <Input
+          placeholder="Search ingredients..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+        />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <Button onClick={() => openModal()} color_name="primary" className="font-bold shadow-lg shadow-primary/20">
             + Add Ingredient
           </Button>
-          <div className="flex bg-surface-panel dark:bg-surface-panel-dark p-1 rounded-xl border border-border dark:border-border-dark">
-            <button 
-              onClick={() => loadSortedFridge("asc")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${sortDir === "asc" ? "bg-primary text-white" : "text-text-secondary"}`}
-            >
-              Earliest First
-            </button>
-            <button 
-              onClick={() => loadSortedFridge("desc")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${sortDir === "desc" ? "bg-primary text-white" : "text-text-secondary"}`}
-            >
-              Latest First
-            </button>
-          </div>
+          {!searchQuery && (
+            <div className="flex bg-surface-panel dark:bg-surface-panel-dark p-1 rounded-xl border border-border dark:border-border-dark">
+              <button 
+                onClick={() => loadSortedFridge("asc")}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${sortDir === "asc" ? "bg-primary text-white" : "text-text-secondary"}`}
+              >
+                Earliest First
+              </button>
+              <button 
+                onClick={() => loadSortedFridge("desc")}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${sortDir === "desc" ? "bg-primary text-white" : "text-text-secondary"}`}
+              >
+                Latest First
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Main List Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-border dark:border-border-dark pb-2">
           <h3 className="text-xl font-black tracking-tight text-text-primary dark:text-text-primary-dark">
-            In Stock ({nonUsedItems.length})
+            {isSearching ? "Searching..." : `In Stock (${displayItems.length})`}
           </h3>
         </div>
 
-        <StackedList emptyMessage="Your fridge is empty. Time to go shopping!" onEmptyClick={() => openModal()}>
-          {nonUsedItems.map((item) => {
+        <StackedList 
+          emptyMessage={searchQuery ? "No ingredients match your search." : "Your fridge is empty. Time to go shopping!"} 
+          onEmptyClick={() => openModal()}
+        >
+          {displayItems.map((item) => {
             const expired = isExpired(item.expiration_date);
             return (
               <Card 
@@ -188,7 +223,6 @@ export default function FridgePage() {
         </StackedList>
       </div>
 
-      {/* Add/Edit Modal */}
       <Modal open={modalOpen} onClose={closeModal}>
         <div className="p-2">
           <Heading 

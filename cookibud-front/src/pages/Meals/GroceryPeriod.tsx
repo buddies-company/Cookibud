@@ -52,7 +52,7 @@ export default function GroceryPeriod() {
       );
       setExpandedLists([sorted[0].id!]);
     }
-  }, [savedLists]);
+  }, [savedLists,expandedLists.length]);
 
   // Sorting lists by date desc (latest first)
   const sortedLists = [...savedLists].sort((a, b) => 
@@ -141,7 +141,7 @@ export default function GroceryPeriod() {
 
   async function saveGrocery() {
     const items = Object.entries(grocery).map(([key, val]) => {
-      const [name, _] = key.split('::');
+      const [name] = key.split('::');
       return { name, qty: val.qty, unit: val.unit || "", entries: val.entries, bought: false };
     });
     const payload = {

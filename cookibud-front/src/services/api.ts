@@ -1,4 +1,4 @@
-import { useToast } from "@soilhat/react-components";
+import type { ApiToastDetail } from "../utils/constants/types";
 import { saveDataToCache, getCachedData } from "./idb";
 
 export const getApiUrl = (url: string) => {
@@ -106,10 +106,21 @@ export const callApi = async <T = unknown>(
     });
 }
 
+const triggerToast = (message: string, type: ApiToastDetail['type']) => {
+  const event = new CustomEvent<ApiToastDetail>('api-toast', { 
+    detail: { message, type } 
+  });
+  window.dispatchEvent(event);
+};
+
 const serveCachedData = async <T = unknown>(save_name: string): Promise<ApiResponse<T>> => {
-    const { error, info } = useToast();
     const cached = await getCachedData(save_name);
-    if (cached) info("You are offline. Serving cached data.");
-    else error("You are offline and no cached data is available.");
-    return { data: cached as T, offline: true };
+    
+    if (cached) {
+        triggerToast("You are offline. Serving cached data.", "info");
+    } else {
+        triggerToast("You are offline and no cached data is available.", "error");
+    }
+    
+    return { data: (cached || null) as T, offline: true };
 }
