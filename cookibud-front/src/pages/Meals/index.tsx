@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Heading, Card, Button, Modal, Calendar, Input } from "@soilhat/react-components";
+import { Heading, Button, Modal, Calendar, Input } from "@soilhat/react-components";
 import SearchRecipe from './SearchRecipe';
 import { callApi } from "../../services/api";
 import { useNavigate } from 'react-router-dom';
