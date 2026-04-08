@@ -185,7 +185,10 @@ export default function MealsPage() {
         onPrev={() => month === 0 ? (setMonth(11), setYear(y => y - 1)) : setMonth(m => m - 1)}
         onNext={() => month === 11 ? (setMonth(0), setYear(y => y + 1)) : setMonth(m => m + 1)}
         onAction={openPlanModal}
-        onEventClick={(id) => navigate(`/meals/${id}`)}
+        onEventClick={(compositeId) => {
+          const [realMealId] = compositeId.split('-');
+          navigate(`/meals/${realMealId}`);
+        }}
         onEventDrop={handleEventDrop}
         actionLabel="Plan"
       />
